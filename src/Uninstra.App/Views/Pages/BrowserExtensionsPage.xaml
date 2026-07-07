@@ -1,0 +1,70 @@
+<UserControl x:Class="Uninstra.App.Views.Pages.BrowserExtensionsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="24,20,24,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Browser Extensions" FontSize="22" FontWeight="SemiBold"/>
+                    <Border Background="{DynamicResource PrimaryTranslucentBrush}"
+                            CornerRadius="10" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Extensions.Count, FallbackValue=0}" FontSize="12"
+                                   Foreground="{DynamicResource PrimaryLightBrush}" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="Manage extensions across Chrome, Firefox, Edge, and more" FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="24,0,24,0">
+            <DataGrid ItemsSource="{Binding Extensions}" IsReadOnly="True"
+                      AutoGenerateColumns="False" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Extension" Binding="{Binding Name}" Width="*" MinWidth="220"/>
+                    <DataGridTextColumn Header="Browser" Binding="{Binding Browser}" Width="100"/>
+                    <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="100"/>
+                    <DataGridTextColumn Header="Status" Binding="{Binding IsEnabled}" Width="80"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Loading overlay -->
+            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Empty state -->
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Visibility="{Binding Extensions.Count, FallbackValue=Visible,
+                        Converter={StaticResource CountToVisibilityInverse}}">
+                <TextBlock Text="🧩" FontSize="48" HorizontalAlignment="Center" Opacity="0.5"/>
+                <TextBlock Text="No extensions found" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" Margin="0,8,0,4"/>
+                <TextBlock Text="Extensions from installed browsers will appear here" FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="2" Padding="24,8,24,12">
+            <DockPanel>
+                <Button Content="Refresh" Style="{StaticResource SecondaryButton}"
+                        DockPanel.Dock="Right" Padding="16,6" FontSize="12"
+                        Command="{Binding LoadCommand}" ToolTip="Rescan browser extensions"/>
+                <TextBlock Text="{Binding StatusText}" FontSize="11"
+                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

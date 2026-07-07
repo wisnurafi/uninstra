@@ -1,0 +1,40 @@
+<UserControl x:Class="Uninstra.App.Views.Pages.QuarantinePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="24,20,24,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Quarantine" FontSize="22" FontWeight="SemiBold"/>
+                    <Border Background="{DynamicResource PrimaryTranslucentBrush}"
+                            CornerRadius="10" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="0" FontSize="12"
+                                   Foreground="{DynamicResource PrimaryLightBrush}" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="View quarantined files that can be restored if needed" FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Margin="24,0,24,0">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="📦" FontSize="64" HorizontalAlignment="Center" Opacity="0.3"/>
+                <TextBlock Text="No items in quarantine" FontSize="16" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                <TextBlock Text="Deleted files are stored here before permanent removal" FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="2" Text="Empty" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                   Margin="24,0,24,12"/>
+    </Grid>
+</UserControl>

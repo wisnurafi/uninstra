@@ -1,0 +1,78 @@
+<UserControl x:Class="Uninstra.App.Views.Pages.ForceUninstallPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Uninstra.App.ViewModels">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="24,20,24,16">
+            <StackPanel>
+                <TextBlock Text="Force Uninstall" FontSize="22" FontWeight="SemiBold"/>
+                <TextBlock Text="Remove programs that can't be normally uninstalled" FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="24,0,24,0">
+            <!-- Empty state (no target selected) -->
+            <StackPanel VerticalAlignment="Center"
+                        Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                <Border Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="32,28" Margin="0,0,0,16">
+                    <StackPanel HorizontalAlignment="Center" MaxWidth="420">
+                        <TextBlock Text="⚠️" FontSize="48" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Force uninstall mode" FontSize="16" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                        <TextBlock Text="Select a program executable or folder to scan for all related files, registry entries, and services for forced removal."
+                                   FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+
+                        <!-- Target path display -->
+                        <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="6" Padding="12,8" Margin="0,16,0,0"
+                                Visibility="{Binding TargetPath, Converter={StaticResource NullToVisibility}}">
+                            <TextBlock Text="{Binding TargetPath}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding TargetPath}"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Browse..." Style="{StaticResource SecondaryButton}"
+                            Padding="20,10" FontSize="13" Margin="0,0,8,0"
+                            Command="{Binding BrowseCommand}"
+                            ToolTip="Select a program executable or folder"/>
+                    <Button Content="Scan &amp; Force Remove" Style="{StaticResource DangerButton}"
+                            Padding="20,10" FontSize="13"
+                            Command="{Binding ScanCommand}"
+                            ToolTip="Scan for related files and remove"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Scanning state -->
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding StatusText}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Results list -->
+            <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"
+                      AutoGenerateColumns="False" SelectionMode="Single"
+                      Visibility="{Binding Leftovers.Count, Converter={StaticResource CountToVisibility}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="200"/>
+                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100"/>
+                    <DataGridTextColumn Header="Confidence" Binding="{Binding ConfidenceLevel}" Width="100"/>
+                    <DataGridTextColumn Header="Risk" Binding="{Binding RiskLevel}" Width="80"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="11"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="24,0,24,12"/>
+    </Grid>
+</UserControl>
