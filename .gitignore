@@ -43,3 +43,6 @@ Desktop.ini
 # Environment
 .env
 .env.local
+
+# Internal notes
+INSTRUCTION.md
