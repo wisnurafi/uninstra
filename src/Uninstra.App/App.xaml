@@ -7,6 +7,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                <ResourceDictionary Source="Themes/Icons.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Global Converters -->
@@ -16,6 +17,8 @@
             <conv:CountToVisibilityConverter x:Key="CountToVisibility"/>
             <conv:CountToVisibilityInverseConverter x:Key="CountToVisibilityInverse"/>
             <conv:FileSizeConverter x:Key="FileSizeConverter"/>
+            <conv:FileSizeConverter x:Key="BytesToSizeConverter"/>
+            <conv:StringToVisibilityConverter x:Key="StringToVisibility"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

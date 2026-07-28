@@ -74,6 +74,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IWindowsAppScanner, WindowsAppScanner>();
         services.AddSingleton<IJunkScanner, JunkScannerService>();
         services.AddSingleton<ILeftoverCleanupService, LeftoverCleanupService>();
+        services.AddSingleton<IInstallMonitorService, InstallMonitorService>();
 
         // Application services
         services.AddSingleton<ScanCoordinator>();

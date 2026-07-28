@@ -3,75 +3,73 @@ namespace Uninstra.App.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using Uninstra.App.ViewModels;
-using Uninstra.App.Views.Pages;
 
 public partial class MainWindow : Window
 {
+    private readonly MainViewModel _vm;
+
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = App.Services.GetRequiredService<MainViewModel>();
-
-        // Load Programs page by default
-        NavigateToPage("Programs");
+        _vm = App.Services.GetRequiredService<MainViewModel>();
+        DataContext = _vm;
+        
+        // Load default page
+        NavigateTo("Programs");
     }
 
     private void NavButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is RadioButton rb && rb.Tag is string tag)
+        if (sender is RadioButton btn && btn.Tag is string pageName)
         {
-            NavigateToPage(tag);
+            NavigateTo(pageName);
         }
     }
 
-    private void NavigateToPage(string page)
+    private void NavigateTo(string pageName)
     {
-        PageContent.Content = page switch
+        object view = pageName switch
         {
-            "Programs" or "Programs_Recent" or "Programs_Large" or "Programs_Infrequent"
-                or "Programs_Updates" or "Programs_System" => CreateProgramsPage(page),
-            "SoftwareHealth" => new SoftwareHealthPage(),
-            "InstallMonitor" => new InstallMonitorPage(),
-            "ForceUninstall" => new ForceUninstallPage(),
-            "ResidualScan" => new ResidualScanPage(),
-            "WindowsApps" => new WindowsAppsPage(),
-            "BrowserExtensions" => new BrowserExtensionsPage(),
-            "JunkCleaner" => new JunkCleanerPage(),
-            "Quarantine" => new QuarantinePage(),
-            "History" => new HistoryPage(),
-            "Settings" => new SettingsPage(),
-            "About" => new AboutPage(),
-            _ => new ProgramsPage()
+            "Programs" => new Pages.ProgramsPage(),
+            "Programs_Recent" => new Pages.ProgramsPage { DataContext = SetCategory("Recently Installed") },
+            "Programs_Large" => new Pages.ProgramsPage { DataContext = SetCategory("Large Programs") },
+            "SoftwareHealth" => new Pages.SoftwareHealthPage(),
+            "InstallMonitor" => new Pages.InstallMonitorPage(),
+            "ForceUninstall" => new Pages.ForceUninstallPage(),
+            "ResidualScan" => new Pages.ResidualScanPage(),
+            "WindowsApps" => new Pages.WindowsAppsPage(),
+            "BrowserExtensions" => new Pages.BrowserExtensionsPage(),
+            "JunkCleaner" => new Pages.JunkCleanerPage(),
+            "Quarantine" => new Pages.QuarantinePage(),
+            "History" => new Pages.HistoryPage(),
+            "Settings" => new Pages.SettingsPage(),
+            "About" => new Pages.AboutPage(),
+            _ => new Pages.ProgramsPage()
         };
+        PageContent.Content = view;
     }
 
-    private static ProgramsPage CreateProgramsPage(string category)
+    private object SetCategory(string category)
     {
-        var page = new ProgramsPage();
-        if (page.DataContext is ProgramsViewModel vm)
+        var vm = App.Services.GetRequiredService<ProgramsViewModel>();
+        vm.SelectedCategory = category;
+        return vm;
+    }
+
+    // Window Chrome Handlers
+    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void Maximize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Window_StateChanged(object sender, EventArgs e)
+    {
+        if (MaximizeIcon != null)
         {
-            vm.SelectedCategory = category switch
-            {
-                "Programs_Recent" => "Recently Installed",
-                "Programs_Large" => "Large Programs",
-                "Programs_Infrequent" => "Infrequently Used",
-                "Programs_Updates" => "Windows Updates",
-                "Programs_System" => "System Components",
-                _ => "All Programs"
-            };
+            var res = WindowState == WindowState.Maximized ? "Icon_Restore" : "Icon_Maximize";
+            MaximizeIcon.Data = (Geometry)FindResource(res);
         }
-        return page;
-    }
-
-    protected override void OnSourceInitialized(EventArgs e)
-    {
-        base.OnSourceInitialized(e);
-        // Ensure window is within screen bounds
-        var screen = SystemParameters.WorkArea;
-        if (Left + Width > screen.Right) Left = screen.Right - Width;
-        if (Top + Height > screen.Bottom) Top = screen.Bottom - Height;
-        if (Left < screen.Left) Left = screen.Left;
-        if (Top < screen.Top) Top = screen.Top;
     }
 }

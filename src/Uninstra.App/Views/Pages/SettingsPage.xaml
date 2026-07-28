@@ -5,90 +5,156 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
-                <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="Configure application preferences" FontSize="12"
+                <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="Configure application preferences" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="24,0,24,16">
+        <!-- Settings Sections -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,0,20,16">
             <StackPanel>
-                <!-- General section -->
-                <TextBlock Text="GENERAL" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"
-                           Margin="0,0,0,8"/>
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
+                <!-- General -->
+                <TextBlock Text="GENERAL" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8"/>
+                <Border Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,12">
+                        <DockPanel Margin="0,0,0,14">
                             <StackPanel DockPanel.Dock="Left">
                                 <TextBlock Text="Create restore point before uninstall" FontSize="13"/>
-                                <TextBlock Text="Automatically create a Windows restore point" FontSize="11"
+                                <TextBlock Text="Automatically create a Windows restore point" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"/>
                             </StackPanel>
-                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" IsChecked="True"/>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding CreateRestorePoint}"/>
                         </DockPanel>
-                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
-                        <DockPanel Margin="0,0,0,12">
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                        <DockPanel Margin="0,0,0,14">
                             <StackPanel DockPanel.Dock="Left">
-                                <TextBlock Text="Auto-scan for leftovers after uninstall" FontSize="13"/>
-                                <TextBlock Text="Scan for leftover files and registry entries" FontSize="11"
+                                <TextBlock Text="Confirm before uninstall" FontSize="13"/>
+                                <TextBlock Text="Show confirmation dialog before uninstalling" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"/>
                             </StackPanel>
-                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" IsChecked="True"/>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ConfirmBeforeUninstall}"/>
                         </DockPanel>
-                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                        <DockPanel Margin="0,0,0,14">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="Confirm before cleanup" FontSize="13"/>
+                                <TextBlock Text="Show confirmation dialog before cleaning leftovers" FontSize="10"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ConfirmBeforeCleanup}"/>
+                        </DockPanel>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Left">
-                                <TextBlock Text="Close to system tray" FontSize="13"/>
-                                <TextBlock Text="Keep running in background when closed" FontSize="11"
+                                <TextBlock Text="Advanced mode" FontSize="13"/>
+                                <TextBlock Text="Show advanced options and system components" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"/>
                             </StackPanel>
-                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" IsChecked="False"/>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding AdvancedMode}"/>
                         </DockPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- Cleanup section -->
-                <TextBlock Text="CLEANUP" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"
-                           Margin="0,0,0,8"/>
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
+                <!-- Scanning -->
+                <TextBlock Text="SCANNING" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8"/>
+                <Border Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Maximum file size for quarantine (MB):" FontSize="13" Margin="0,0,0,4"/>
-                        <TextBox Style="{StaticResource SearchTextBox}" Width="120" Text="100"
-                                 HorizontalAlignment="Left"/>
+                        <DockPanel Margin="0,0,0,14">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="Scan AppData folder" FontSize="13"/>
+                                <TextBlock Text="Search for leftovers in AppData" FontSize="10"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ScanAppData}"/>
+                        </DockPanel>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                        <DockPanel Margin="0,0,0,14">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="Scan ProgramData folder" FontSize="13"/>
+                                <TextBlock Text="Search for leftovers in ProgramData" FontSize="10"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ScanProgramData}"/>
+                        </DockPanel>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                        <DockPanel Margin="0,0,0,14">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="Scan Registry" FontSize="13"/>
+                                <TextBlock Text="Search for leftover registry entries" FontSize="10"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ScanRegistry}"/>
+                        </DockPanel>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="Scan Startup entries" FontSize="13"/>
+                                <TextBlock Text="Check for leftover startup items" FontSize="10"
+                                           Foreground="{DynamicResource TextMutedBrush}"/>
+                            </StackPanel>
+                            <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right" 
+                                      IsChecked="{Binding ScanStartup}"/>
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- About section -->
-                <TextBlock Text="DATA" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"
-                           Margin="0,0,0,8"/>
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
+                <!-- Data -->
+                <TextBlock Text="DATA" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8"/>
+                <Border Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="20,16" Margin="0,0,0,16">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,8">
+                        <DockPanel Margin="0,0,0,10">
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                 <TextBlock Text="Clear scan cache" FontSize="13"/>
-                                <TextBlock Text="Remove cached scan results" FontSize="11"
+                                <TextBlock Text="Remove cached scan results" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"/>
                             </StackPanel>
-                            <Button DockPanel.Dock="Right" Content="Clear" Style="{StaticResource SecondaryButton}"
+                            <Button DockPanel.Dock="Right" Content="Clear" Style="{DynamicResource SecondaryButton}"
                                     Padding="12,6" FontSize="12" HorizontalAlignment="Right"/>
                         </DockPanel>
-                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,8"/>
+                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,10"/>
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                 <TextBlock Text="Reset all settings" FontSize="13"/>
-                                <TextBlock Text="Restore default configuration" FontSize="11"
+                                <TextBlock Text="Restore default configuration" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"/>
                             </StackPanel>
-                            <Button DockPanel.Dock="Right" Content="Reset" Style="{StaticResource DangerButton}"
+                            <Button DockPanel.Dock="Right" Content="Reset" Style="{DynamicResource DangerButton}"
                                     Padding="12,6" FontSize="12" HorizontalAlignment="Right"/>
                         </DockPanel>
                     </StackPanel>
                 </Border>
             </StackPanel>
         </ScrollViewer>
+
+        <!-- Footer with Save Button -->
+        <Border Grid.Row="2" Padding="20,8,20,12">
+            <DockPanel>
+                <Button Content="Save Settings" Style="{DynamicResource PrimaryButton}"
+                        DockPanel.Dock="Right" Padding="16,8" FontSize="12"
+                        Command="{Binding SaveCommand}" ToolTip="Save current settings"/>
+                <TextBlock Text="Changes are saved to JSON config file" FontSize="10"
+                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

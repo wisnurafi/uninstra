@@ -9,32 +9,43 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Quarantine" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="Quarantine" FontSize="20" FontWeight="SemiBold"/>
                     <Border Background="{DynamicResource PrimaryTranslucentBrush}"
-                            CornerRadius="10" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="0" FontSize="12"
-                                   Foreground="{DynamicResource PrimaryLightBrush}" FontWeight="SemiBold"/>
+                            CornerRadius="6" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="0" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryBrush}"/>
                     </Border>
                 </StackPanel>
-                <TextBlock Text="View quarantined files that can be restored if needed" FontSize="12"
+                <TextBlock Text="View quarantined files that can be restored if needed" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Margin="24,0,24,0">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="📦" FontSize="64" HorizontalAlignment="Center" Opacity="0.3"/>
-                <TextBlock Text="No items in quarantine" FontSize="16" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" Margin="0,12,0,4"/>
-                <TextBlock Text="Deleted files are stored here before permanent removal" FontSize="12"
-                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
-            </StackPanel>
+        <!-- Empty State -->
+        <Border Grid.Row="1" Margin="20,0">
+            <Border Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="32">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource SurfaceBrush}"
+                            HorizontalAlignment="Center" Margin="0,0,0,16">
+                        <Path Data="{DynamicResource Icon_Quarantine}" Fill="{DynamicResource TextMutedBrush}"
+                              Width="28" Height="28" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"/>
+                    </Border>
+                    <TextBlock Text="No items in quarantine" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock Text="Deleted files are stored here before permanent removal" FontSize="11"
+                               Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
         </Border>
 
-        <TextBlock Grid.Row="2" Text="Empty" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
-                   Margin="24,0,24,12"/>
+        <!-- Status -->
+        <TextBlock Grid.Row="2" Text="Empty" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                   Margin="20,0,20,12"/>
     </Grid>
 </UserControl>

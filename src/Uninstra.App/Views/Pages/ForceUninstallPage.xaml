@@ -9,70 +9,86 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
-                <TextBlock Text="Force Uninstall" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="Remove programs that can't be normally uninstalled" FontSize="12"
+                <TextBlock Text="Force Uninstall" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="Remove programs that can't be normally uninstalled" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="24,0,24,0">
-            <!-- Empty state (no target selected) -->
-            <StackPanel VerticalAlignment="Center"
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="20,0">
+            <!-- Empty/initial state -->
+            <StackPanel VerticalAlignment="Top"
                         Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="32,28" Margin="0,0,0,16">
+                <Border Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="12" Padding="28" Margin="0,0,0,16">
                     <StackPanel HorizontalAlignment="Center" MaxWidth="420">
-                        <TextBlock Text="⚠️" FontSize="48" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Force uninstall mode" FontSize="16" FontWeight="SemiBold"
-                                   HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                        <Border Width="48" Height="48" CornerRadius="12" Background="#15FBBF24"
+                                HorizontalAlignment="Center" Margin="0,0,0,12">
+                            <Path Data="{DynamicResource Icon_ForceUninstall}" Fill="{DynamicResource WarningBrush}"
+                                  Width="22" Height="22" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Force uninstall mode" FontSize="15" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock Text="Select a program executable or folder to scan for all related files, registry entries, and services for forced removal."
-                                   FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                                   FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                    HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
 
                         <!-- Target path display -->
-                        <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="6" Padding="12,8" Margin="0,16,0,0"
+                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6" Padding="12,8" Margin="0,16,0,0"
                                 Visibility="{Binding TargetPath, Converter={StaticResource NullToVisibility}}">
-                            <TextBlock Text="{Binding TargetPath}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                            <TextBlock Text="{Binding TargetPath}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextTrimming="CharacterEllipsis" ToolTip="{Binding TargetPath}"/>
                         </Border>
                     </StackPanel>
                 </Border>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="Browse..." Style="{StaticResource SecondaryButton}"
-                            Padding="20,10" FontSize="13" Margin="0,0,8,0"
+                    <Button Content="Browse..." Style="{DynamicResource SecondaryButton}"
+                            Padding="18,8" FontSize="12" Margin="0,0,8,0"
                             Command="{Binding BrowseCommand}"
                             ToolTip="Select a program executable or folder"/>
-                    <Button Content="Scan &amp; Force Remove" Style="{StaticResource DangerButton}"
-                            Padding="20,10" FontSize="13"
+                    <Button Content="Scan &amp; Force Remove" Style="{DynamicResource DangerButton}"
+                            Padding="18,8" FontSize="12"
                             Command="{Binding ScanCommand}"
                             ToolTip="Scan for related files and remove"/>
                 </StackPanel>
             </StackPanel>
 
             <!-- Scanning state -->
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                        Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
-                <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
-                <TextBlock Text="{Binding StatusText}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
+            <Border Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="32"
+                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <!-- Results list -->
-            <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"
-                      AutoGenerateColumns="False" SelectionMode="Single"
-                      Visibility="{Binding Leftovers.Count, Converter={StaticResource CountToVisibility}}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="200"/>
-                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100"/>
-                    <DataGridTextColumn Header="Confidence" Binding="{Binding ConfidenceLevel}" Width="100"/>
-                    <DataGridTextColumn Header="Risk" Binding="{Binding RiskLevel}" Width="80"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    Visibility="{Binding Leftovers.Count, Converter={StaticResource CountToVisibility}}">
+                <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"
+                          AutoGenerateColumns="False" SelectionMode="Single" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="200"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100"/>
+                        <DataGridTextColumn Header="Confidence" Binding="{Binding ConfidenceLevel}" Width="100"/>
+                        <DataGridTextColumn Header="Risk" Binding="{Binding RiskLevel}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
         </Grid>
 
-        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="11"
-                   Foreground="{DynamicResource TextMutedBrush}" Margin="24,0,24,12"/>
+        <!-- Status -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="10"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="20,0,20,12"/>
     </Grid>
 </UserControl>

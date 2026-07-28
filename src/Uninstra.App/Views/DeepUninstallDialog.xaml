@@ -16,9 +16,9 @@
     </Window.Resources>
 
     <Grid>
-        <!-- ═══ REVIEW PHASE ═══ (scanning/review/cleaning) -->
+        <!-- ═══ REVIEW PHASE ═══ -->
         <Grid x:Name="ReviewPanel" Visibility="{Binding Phase, Converter={StaticResource BoolToVis}, ConverterParameter=notdone}">
-            <Grid Margin="24">
+            <Grid Margin="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -34,19 +34,19 @@
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="{StaticResource PrimaryColor}" Offset="0"/>
-                                    <GradientStop Color="{StaticResource AccentColor}" Offset="1"/>
+                                    <GradientStop Color="{StaticResource PrimaryLightColor}" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
-                            <TextBlock Text="🔍" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Path Data="{DynamicResource Icon_Search}" Fill="#171717" Width="18" Height="18" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock FontSize="17" FontWeight="SemiBold">
+                            <TextBlock FontSize="16" FontWeight="SemiBold">
                                 <Run Text="Deep Uninstall: "/>
-                                <Run Text="{Binding AppName, Mode=OneWay}" Foreground="{DynamicResource PrimaryLightBrush}"/>
+                                <Run Text="{Binding AppName, Mode=OneWay}" Foreground="{DynamicResource PrimaryBrush}"/>
                             </TextBlock>
-                            <TextBlock Text="{Binding StatusText}" FontSize="12"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            <TextBlock Text="{Binding StatusText}" FontSize="11"
+                                       Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -57,110 +57,108 @@
                              Value="{Binding ProgressValue}" Maximum="{Binding ProgressMax}"/>
 
                 <!-- Leftover items list -->
-                <DataGrid Grid.Row="2" ItemsSource="{Binding Leftovers}" IsReadOnly="True"
-                          AutoGenerateColumns="False"
-                          EnableRowVirtualization="True"
-                          VirtualizingPanel.IsVirtualizing="True"
-                          VirtualizingPanel.VirtualizationMode="Recycling"
-                          SelectionMode="Single"
-                          CanUserSortColumns="True">
-                    <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="" Width="40">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
-                                              IsEnabled="{Binding IsProtected, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                                              HorizontalAlignment="Center"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="180"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="90"/>
-                        <DataGridTextColumn Header="Size" Binding="{Binding Size, Converter={StaticResource FileSizeConverter}}" Width="80"/>
-                        <DataGridTextColumn Header="Confidence" Binding="{Binding Confidence}" Width="110"/>
-                        <DataGridTextColumn Header="Risk" Binding="{Binding Risk}" Width="60"/>
-                        <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="200">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                    <Setter Property="ToolTip" Value="{Binding Location}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                    <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"
+                              AutoGenerateColumns="False"
+                              EnableRowVirtualization="True"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              SelectionMode="Single" CanUserSortColumns="True"
+                              BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="50" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsProtected, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="180"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="90"/>
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size, Converter={StaticResource FileSizeConverter}}" Width="80"/>
+                            <DataGridTextColumn Header="Confidence" Binding="{Binding Confidence}" Width="100"/>
+                            <DataGridTextColumn Header="Risk" Binding="{Binding Risk}" Width="70"/>
+                            <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="180">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding Location}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
 
                 <!-- Selection summary -->
-                <Border Grid.Row="3" Background="{DynamicResource CardBrush}" CornerRadius="8"
-                        Padding="16,10" Margin="0,10,0,0">
+                <Border Grid.Row="3" Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16,10" Margin="0,12,0,0">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12">
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11">
                                 <Run Text="{Binding TotalFound, Mode=OneWay}"/>
-                                <Run Text=" found  ·  "/>
-                                <Run Text="{Binding SelectedCount, Mode=OneWay}" Foreground="{DynamicResource PrimaryLightBrush}" FontWeight="SemiBold"/>
-                                <Run Text=" selected ("/>
+                                <Run Text="found ·"/>
+                                <Run Text="{Binding SelectedCount, Mode=OneWay}" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold"/>
+                                <Run Text="selected ("/>
                                 <Run Text="{Binding SelectedSize, Converter={StaticResource FileSizeConverter}, Mode=OneWay}"/>
                                 <Run Text=")"/>
                             </TextBlock>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Content="All" Style="{StaticResource GhostButton}"
-                                    Command="{Binding SelectAllCommand}" Margin="0,0,2,0"/>
-                            <Button Content="Recommended" Style="{StaticResource GhostButton}"
-                                    Command="{Binding SelectRecommendedCommand}" Margin="0,0,2,0"/>
-                            <Button Content="None" Style="{StaticResource GhostButton}"
-                                    Command="{Binding DeselectAllCommand}"/>
+                            <Button Content="All" Style="{DynamicResource GhostButton}"
+                                    Command="{Binding SelectAllCommand}" Margin="0,0,2,0" Padding="8,4"/>
+                            <Button Content="Recommended" Style="{DynamicResource GhostButton}"
+                                    Command="{Binding SelectRecommendedCommand}" Margin="0,0,2,0" Padding="8,4"/>
+                            <Button Content="None" Style="{DynamicResource GhostButton}"
+                                    Command="{Binding DeselectAllCommand}" Padding="8,4"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
 
                 <!-- Bottom buttons -->
-                <DockPanel Grid.Row="4" Margin="0,14,0,0">
+                <DockPanel Grid.Row="4" Margin="0,16,0,0">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Clean Selected" Style="{StaticResource PrimaryButton}"
+                        <Button Content="Clean Selected" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding CleanSelectedCommand}"
                                 IsEnabled="{Binding CanClean}"
-                                Margin="0,0,10,0" Padding="20,10"
+                                Margin="0,0,8,0" Padding="18,8"
                                 ToolTip="Delete all selected leftover items"/>
-                        <Button Content="Skip" Style="{StaticResource SecondaryButton}"
-                                Click="CloseButton_Click" Padding="16,10"
+                        <Button Content="Skip" Style="{DynamicResource SecondaryButton}"
+                                Click="CloseButton_Click" Padding="14,8"
                                 ToolTip="Skip cleanup — leftover files will remain"/>
                     </StackPanel>
                 </DockPanel>
             </Grid>
         </Grid>
 
-        <!-- ═══ COMPLETION PHASE ═══ (done) -->
+        <!-- ═══ COMPLETION PHASE ═══ -->
         <Grid x:Name="CompletionPanel" Visibility="Collapsed">
             <Border Background="{DynamicResource BackgroundBrush}">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
                     <!-- Success icon -->
-                    <Border Width="72" Height="72" CornerRadius="36" Margin="0,0,0,20"
-                            HorizontalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#34D399" Offset="0"/>
-                                <GradientStop Color="#10B981" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock Text="✓" FontSize="36" FontWeight="Bold" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Margin="0,-3,0,0"/>
+                    <Border Width="72" Height="72" CornerRadius="36" Margin="0,0,0,20" HorizontalAlignment="Center"
+                            Background="{DynamicResource PrimaryBrush}">
+                        <Path Data="{DynamicResource Icon_Check}" Fill="#171717" Width="32" Height="32" Stretch="Uniform"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
 
                     <TextBlock Text="Cleanup Complete!" FontSize="22" FontWeight="SemiBold"
                                HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                    <TextBlock x:Name="CompletionSubtitle" FontSize="13"
+                    <TextBlock x:Name="CompletionSubtitle" FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center" TextAlignment="Center"
                                TextWrapping="Wrap" Margin="0,0,0,24"/>
 
                     <!-- Stats cards -->
-                    <Border Background="{DynamicResource CardBrush}" CornerRadius="12"
-                            Padding="24,16" Margin="0,0,0,24">
+                    <Border Background="{DynamicResource GlassBackgroundBrush}"
+                            BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                            CornerRadius="12" Padding="24,16" Margin="0,0,0,24">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -172,42 +170,40 @@
 
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                 <TextBlock x:Name="StatCleaned" FontSize="28" FontWeight="Bold"
-                                           Foreground="{DynamicResource AccentGreenBrush}"
+                                           Foreground="{DynamicResource PrimaryBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Cleaned" FontSize="11"
+                                <TextBlock Text="Cleaned" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
 
-                            <Border Grid.Column="1" Width="1" Height="36"
-                                    Background="{DynamicResource BorderBrush}"/>
+                            <Border Grid.Column="1" Width="1" Height="36" Background="{DynamicResource DividerBrush}"/>
 
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                 <TextBlock x:Name="StatFailed" FontSize="28" FontWeight="Bold"
                                            Foreground="{DynamicResource WarningBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Failed" FontSize="11"
+                                <TextBlock Text="Failed" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
 
-                            <Border Grid.Column="3" Width="1" Height="36"
-                                    Background="{DynamicResource BorderBrush}"/>
+                            <Border Grid.Column="3" Width="1" Height="36" Background="{DynamicResource DividerBrush}"/>
 
                             <StackPanel Grid.Column="4" HorizontalAlignment="Center">
                                 <TextBlock x:Name="StatFreed" FontSize="28" FontWeight="Bold"
                                            Foreground="{DynamicResource InfoBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Freed" FontSize="11"
+                                <TextBlock Text="Freed" FontSize="10"
                                            Foreground="{DynamicResource TextMutedBrush}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </Border>
 
-                    <Button Content="Done" Style="{StaticResource PrimaryButton}"
+                    <Button Content="Done" Style="{DynamicResource PrimaryButton}"
                             Click="CloseButton_Click" Padding="32,10"
-                            HorizontalAlignment="Center" FontSize="14"/>
+                            HorizontalAlignment="Center" FontSize="13"/>
                 </StackPanel>
             </Border>
         </Grid>

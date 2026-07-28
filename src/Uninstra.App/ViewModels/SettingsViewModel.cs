@@ -7,6 +7,7 @@ using Uninstra.Application.Interfaces;
 
 public sealed partial class SettingsViewModel : ObservableObject
 {
+
     private readonly ISettingsService _settingsService;
 
     [ObservableProperty] private string _selectedTheme = "Dark";
@@ -53,7 +54,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void Save()
     {
-        _settingsService.Save(new AppSettings
+        _settingsService.Save(new Uninstra.Application.Interfaces.AppSettings
         {
             Theme = SelectedTheme,
             ConfirmBeforeUninstall = ConfirmBeforeUninstall,

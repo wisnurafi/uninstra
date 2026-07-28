@@ -4,7 +4,9 @@
              xmlns:conv="clr-namespace:Uninstra.App.Converters">
     <UserControl.Resources>
         <conv:FileSizeConverter x:Key="FileSizeConverter"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -12,44 +14,90 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
-                <TextBlock Text="Junk Cleaner" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="Clean temporary files and free up disk space" FontSize="12"
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Junk Cleaner" FontSize="20" FontWeight="SemiBold"/>
+                    <Border Background="{DynamicResource PrimaryTranslucentBrush}"
+                            CornerRadius="6" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TotalJunkSize, Converter={StaticResource FileSizeConverter}, FallbackValue='0 B'}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryBrush}"/>
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="Clean temporary files and free up disk space" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="24,0,24,0">
-            <StackPanel VerticalAlignment="Center">
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="32,28" Margin="0,0,0,16">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="Potential space to reclaim" FontSize="13" Foreground="{DynamicResource TextMutedBrush}"
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="20,0">
+            <!-- Main Card -->
+            <Border Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="24" VerticalAlignment="Top">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Summary -->
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
+                        <TextBlock Text="Potential space to reclaim" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
                                    HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding TotalJunkSize, Converter={StaticResource FileSizeConverter}, FallbackValue='0 B'}"
-                                   FontSize="42" FontWeight="Bold" Foreground="{DynamicResource InfoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,8,0,8"/>
-                        <TextBlock Text="{Binding Categories.Count, StringFormat={}{0} categories scanned, FallbackValue='Click Scan to start'}"
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontSize="48" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,8"/>
+                        <TextBlock Text="{Binding Categories.Count, StringFormat='{}{0} categories scanned', FallbackValue='Click Scan to start'}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
-                </Border>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="Scan for Junk Files" Style="{StaticResource PrimaryButton}"
-                            Padding="28,12" FontSize="14" Margin="0,0,8,0"
-                            Command="{Binding ScanCommand}"
-                            ToolTip="Scan for temporary and junk files"/>
-                    <Button Content="Clean All" Style="{StaticResource DangerButton}"
-                            Padding="20,12" FontSize="14"
-                            Command="{Binding CleanAllCommand}"
-                            ToolTip="Delete all found junk files"/>
-                </StackPanel>
-            </StackPanel>
+                    <!-- Categories Grid -->
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Categories}" Margin="0,0,0,24">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                        CornerRadius="8" Padding="16,12" Margin="0,0,12,12" Width="180">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}}"
+                                                   FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"
+                                                   Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding Count, StringFormat='{}{0} items'}"
+                                                   FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Actions -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Scan for Junk Files" Style="{DynamicResource PrimaryButton}"
+                                Padding="24,10" FontSize="13" Margin="0,0,8,0"
+                                Command="{Binding ScanCommand}"
+                                ToolTip="Scan for temporary and junk files"/>
+                        <Button Content="Clean All" Style="{DynamicResource DangerButton}"
+                                Padding="16,10" FontSize="13"
+                                Command="{Binding CleanAllCommand}"
+                                ToolTip="Delete all found junk files"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
             <!-- Scanning overlay -->
-            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8"
-                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
+            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="12"
+                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                     <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
                     <TextBlock Text="{Binding StatusText}" FontSize="13"
@@ -58,7 +106,8 @@
             </Border>
         </Grid>
 
-        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="11"
-                   Foreground="{DynamicResource TextMutedBrush}" Margin="24,0,24,12"/>
+        <!-- Status -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="10"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="20,0,20,12"/>
     </Grid>
 </UserControl>

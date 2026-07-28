@@ -8,53 +8,55 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Residual Scan" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="Residual Scan" FontSize="20" FontWeight="SemiBold"/>
                     <Border Background="{DynamicResource PrimaryTranslucentBrush}"
-                            CornerRadius="10" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Residuals.Count, FallbackValue=0}" FontSize="12"
-                                   Foreground="{DynamicResource PrimaryLightBrush}" FontWeight="SemiBold"/>
+                            CornerRadius="6" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Residuals.Count, FallbackValue=0}" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryBrush}"/>
                     </Border>
                 </StackPanel>
-                <TextBlock Text="Scan and clean leftover files from previous uninstalls" FontSize="12"
+                <TextBlock Text="Scan and clean leftover files from previous uninstalls" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="24,0,24,0">
-            <!-- Empty/initial state -->
-            <StackPanel VerticalAlignment="Center">
-                <Border Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="32,28" Margin="0,0,0,16">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="Leftover files found" FontSize="13" Foreground="{DynamicResource TextMutedBrush}"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="{Binding Residuals.Count, FallbackValue=0}" FontSize="48" FontWeight="Bold"
-                                   Foreground="{DynamicResource WarningBrush}" HorizontalAlignment="Center" Margin="0,4,0,8"/>
-                        <TextBlock Text="Click Scan to find orphaned files and registry entries" FontSize="12"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="20,0">
+            <Border Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="28" VerticalAlignment="Top">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="Leftover files found" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding Residuals.Count, FallbackValue=0}" FontSize="48" FontWeight="Bold"
+                               Foreground="{DynamicResource WarningBrush}" HorizontalAlignment="Center" Margin="0,6"/>
+                    <TextBlock Text="Click Scan to find orphaned files and registry entries" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
 
-                <Button Content="Scan for Residual Files" Style="{StaticResource PrimaryButton}"
-                        HorizontalAlignment="Center" Padding="28,12" FontSize="14"
-                        Command="{Binding ScanCommand}"
-                        ToolTip="Scan the registry for broken or orphaned uninstall entries"/>
-            </StackPanel>
+                    <Button Content="Scan for Residual Files" Style="{DynamicResource PrimaryButton}"
+                            HorizontalAlignment="Center" Padding="24,10" FontSize="13" Margin="0,20,0,0"
+                            Command="{Binding ScanCommand}"
+                            ToolTip="Scan the registry for broken or orphaned uninstall entries"/>
+                </StackPanel>
+            </Border>
 
             <!-- Scanning overlay -->
-            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8"
+            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="12"
                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                     <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,12"/>
-                    <TextBlock Text="{Binding StatusText}" FontSize="13"
+                    <TextBlock Text="{Binding StatusText}" FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="11"
-                   Foreground="{DynamicResource TextMutedBrush}" Margin="24,0,24,12"/>
+        <!-- Status -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="10"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="20,0,20,12"/>
     </Grid>
 </UserControl>

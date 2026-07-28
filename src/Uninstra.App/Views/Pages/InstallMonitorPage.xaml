@@ -8,53 +8,190 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,20,24,16">
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="20,16,20,12">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Install Monitor" FontSize="22" FontWeight="SemiBold"/>
-                    <Border Background="#15EF4444" BorderBrush="{DynamicResource ErrorBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding IsMonitoring, Converter={StaticResource BoolToOnOff}, FallbackValue=OFF}"
-                                   FontSize="12" Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Text="Install Monitor" FontSize="20" FontWeight="SemiBold"/>
+                    <Border Background="{Binding IsMonitoring, Converter={StaticResource BoolToOnOff}, ConverterParameter='bg'}"
+                            BorderBrush="{Binding IsMonitoring, Converter={StaticResource BoolToOnOff}, ConverterParameter='border'}"
+                            BorderThickness="1" CornerRadius="6" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding IsMonitoring, Converter={StaticResource BoolToOnOff}, FallbackValue='OFF'}"
+                                   FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{Binding IsMonitoring, Converter={StaticResource BoolToOnOff}, ConverterParameter='fg'}"/>
                     </Border>
                 </StackPanel>
-                <TextBlock Text="Monitor new installations and track changes in real-time" FontSize="12"
+                <TextBlock Text="Monitor new installations and track changes in real-time" FontSize="11"
                            Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="1" Margin="24,0,24,0" VerticalAlignment="Center">
-            <Border Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="32,28" Margin="0,0,0,16">
-                <StackPanel HorizontalAlignment="Center" MaxWidth="420">
-                    <TextBlock Text="📡" FontSize="48" HorizontalAlignment="Center" Opacity="0.5"/>
-                    <TextBlock Text="Install monitoring" FontSize="14"
-                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,8,0,4"/>
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="20,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto" MinWidth="280"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel - Setup & Progress -->
+            <Border Grid.Column="0" Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="24" VerticalAlignment="Top" Margin="0,0,12,0">
+                <StackPanel>
+                    <!-- Icon & Title -->
+                    <Border Width="48" Height="48" CornerRadius="12" Background="{DynamicResource SurfaceBrush}"
+                            HorizontalAlignment="Left" Margin="0,0,0,16">
+                        <Path Data="{DynamicResource Icon_InstallMonitor}" Fill="{DynamicResource PrimaryBrush}"
+                              Width="24" Height="24" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.6"/>
+                    </Border>
+
+                    <TextBlock Text="Install monitoring" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                     <TextBlock Text="Select an installer to monitor. Uninstra will take a system snapshot before and after installation to track all changes."
-                               FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
-                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                               FontSize="11" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
                     <!-- Installer path display -->
-                    <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="6" Padding="12,8" Margin="0,16,0,0"
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="12,10" Margin="0,0,0,16"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             Visibility="{Binding InstallerPath, Converter={StaticResource NullToVisibility}}">
-                        <TextBlock Text="{Binding InstallerPath}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding InstallerPath}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{DynamicResource Icon_File}" Fill="{DynamicResource TextSecondaryBrush}"
+                                  Width="16" Height="16" Stretch="Uniform" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding InstallerPath}" FontSize="11" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding InstallerPath}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                        <Button Content="Browse Installer..." Style="{DynamicResource SecondaryButton}"
+                                Padding="18,8" FontSize="12" Margin="0,0,8,0"
+                                Command="{Binding BrowseInstallerCommand}"
+                                IsEnabled="{Binding IsMonitoring, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}"
+                                ToolTip="Select an installer (.exe or .msi) to monitor"/>
+                        <Button Content="Start Monitoring" Style="{DynamicResource PrimaryButton}"
+                                Padding="18,8" FontSize="12" Margin="0,0,8,0"
+                                Command="{Binding StartMonitoringCommand}"
+                                ToolTip="Take snapshot and run the installer"/>
+                        <Button Content="Cancel" Style="{DynamicResource GhostButton}"
+                                Padding="12,8" FontSize="12"
+                                Command="{Binding CancelMonitoringCommand}"
+                                Visibility="{Binding IsMonitoring, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+
+                    <!-- Progress -->
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,16"
+                            Visibility="{Binding HasProgress, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,12"/>
+                            <TextBlock Text="{Binding ProgressText}" FontSize="12" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Last Session Summary -->
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="16"
+                            Visibility="{Binding LastSession, Converter={StaticResource NullToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="Last Monitoring Session" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding LastSession.CreatedDirectories.Count, FallbackValue=0}" 
+                                               FontSize="24" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <TextBlock Text="New Folders" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding LastSession.RegistryChanges.Count, FallbackValue=0}" 
+                                               FontSize="24" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}"/>
+                                    <TextBlock Text="Registry" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="{Binding LastSession.DetectedApplications.Count, FallbackValue=0}" 
+                                               FontSize="24" FontWeight="Bold" Foreground="{DynamicResource InfoBrush}"/>
+                                    <TextBlock Text="New Apps" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </Border>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="Browse Installer..." Style="{StaticResource SecondaryButton}"
-                        Padding="20,10" FontSize="13" Margin="0,0,8,0"
-                        Command="{Binding BrowseInstallerCommand}"
-                        ToolTip="Select an installer (.exe or .msi) to monitor"/>
-                <Button Content="Start Monitoring" Style="{StaticResource PrimaryButton}"
-                        Padding="20,10" FontSize="13"
-                        Command="{Binding StartMonitoringCommand}"
-                        ToolTip="Take snapshot and run the installer"/>
-            </StackPanel>
-        </StackPanel>
+            <!-- Right Panel - Changes Detail -->
+            <Border Grid.Column="1" Background="{DynamicResource GlassBackgroundBrush}"
+                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                    CornerRadius="12" Padding="16" VerticalAlignment="Top">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="11"
-                   Foreground="{DynamicResource TextMutedBrush}" Margin="24,0,24,12"/>
+                    <TextBlock Grid.Row="0" Text="Changes Detected" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Changes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6" 
+                                            Padding="12" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}" 
+                                                           HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                <Border Background="{DynamicResource PrimaryTranslucentBrush}" 
+                                                        CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource PrimaryBrush}"/>
+                                                </Border>
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Samples}" Margin="4,0,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" FontSize="10" 
+                                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                                   TextTrimming="CharacterEllipsis" Margin="0,2"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Empty state -->
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Visibility="{Binding Changes.Count, Converter={StaticResource CountToVisibilityInverse}}">
+                        <Path Data="{DynamicResource Icon_Search}" Fill="{DynamicResource TextMutedBrush}"
+                              Width="32" Height="32" Stretch="Uniform" Opacity="0.4" HorizontalAlignment="Center"/>
+                        <TextBlock Text="No changes detected yet" FontSize="11" 
+                                   Foreground="{DynamicResource TextMutedBrush}" 
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" Padding="20,8">
+            <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
+        </Border>
     </Grid>
 </UserControl>
