@@ -55,7 +55,10 @@ public sealed class UninstallService : IUninstallService
         if (!File.Exists(parsed.ExecutablePath))
         {
             _logger.LogWarning("Uninstaller not found: {Path}", parsed.ExecutablePath);
-            return OperationResult.Failure<UninstallStatus>("EXE_MISSING", $"Uninstaller not found: {parsed.ExecutablePath}");
+            return OperationResult.Failure<UninstallStatus>("EXE_MISSING",
+                $"The uninstaller ({parsed.ExecutablePath}) could not be found. " +
+                "Its files may be sitting in Quarantine from a previous cleanup — " +
+                "restore them there first and retry, or use Force Uninstall to remove just the registry entry.");
         }
 
         var runResult = await _processRunner.RunAsync(parsed.ExecutablePath, parsed.Arguments, progress: progress, ct: ct);
@@ -66,17 +69,37 @@ public sealed class UninstallService : IUninstallService
         progress?.Report("Verifying uninstall...");
         var verified = await VerifyUninstallAsync(app, ct);
 
+        // NSIS-style stub uninstallers exit instantly (exit code 0) while the real
+        // uninstaller is still spinning up in the background. Before concluding
+        // anything, give the actual uninstall a grace window to finish.
+        if (!verified && runResult.Value == 0)
+        {
+            const int graceChecks = 10; // 10 x 2s = 20s max
+            for (int i = 0; i < graceChecks && !verified; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), ct);
+                progress?.Report($"Waiting for the uninstaller to finish… ({(i + 1) * 2}s)");
+                verified = await VerifyUninstallAsync(app, ct);
+            }
+        }
+
         if (verified)
         {
             return OperationResult.Success<UninstallStatus>(UninstallStatus.Completed);
         }
 
-        // Exit code 0 but entry still exists — could be incomplete
+        // Registry entry STILL EXISTS = the application is still installed.
+        // Returning a "success" here previously let the pipeline quarantine a
+        // live installation — so any not-gone outcome now stops the flow.
+        // (User can still use Force Uninstall if they knowingly want cleanup.)
         return runResult.Value switch
         {
-            0 => OperationResult.Success<UninstallStatus>(UninstallStatus.CompletedWithWarnings),
             1602 or 1223 => OperationResult.Success<UninstallStatus>(UninstallStatus.Cancelled),
-            _ => OperationResult.Success<UninstallStatus>(UninstallStatus.UnknownResult)
+            _ => OperationResult.Failure<UninstallStatus>(
+                "UNINSTALL_INCOMPLETE",
+                $"{app.DisplayName} was NOT removed — its installer entry still exists. " +
+                $"The uninstaller exited (code {runResult.Value}) without completing, " +
+                "so leftover cleanup was skipped to protect the installed application.")
         };
     }
 

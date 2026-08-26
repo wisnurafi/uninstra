@@ -162,10 +162,8 @@ Uninstra is an open-source project developed for educational and personal use. W
 
 This project is actively developed but may contain bugs, incomplete features, or rough edges. Areas that may need further improvement include:
 
-- Install Monitor (currently uses placeholder snapshot logic)
 - Browser Extension removal (scan-only, no inline removal yet)
-- Quarantine restore flow
-- Integration & Windows-specific tests
+- Integration & Windows-specific test coverage (Core domain logic is well covered)
 - DummyApp / DummyInstaller tooling
 
 **Contributions, bug reports, and feature requests are welcome.** Feel free to fork, modify, and submit pull requests. If you encounter issues, please [open an issue](https://github.com/YOUR_USERNAME/Uninstra/issues).

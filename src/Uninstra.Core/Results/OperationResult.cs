@@ -15,6 +15,8 @@ public class OperationResult
     }
 
     public static OperationResult Success() => new(true, null);
+    public static OperationResult Success(params string[] warnings)
+        => new(true, null) { Warnings = [.. warnings] };
     public static OperationResult Failure(string code, string message, string? details = null)
         => new(false, new ErrorDetails(code, message, details));
     public static OperationResult Failure(ErrorDetails error) => new(false, error);

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Events;
 using System.Windows;
 using System.Windows.Threading;
 using Uninstra.App.Services;
@@ -30,13 +31,15 @@ public partial class App : System.Windows.Application
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-        // Configure Serilog
+        // Configure Serilog — level comes from saved settings when valid
         var logPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Uninstra", "Logs", "uninstra-.log");
 
+        var settingsService = new JsonSettingsService(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<JsonSettingsService>.Instance);
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(ParseLogLevel(settingsService.Load().LogLevel))
             .WriteTo.File(logPath,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
@@ -50,12 +53,30 @@ public partial class App : System.Windows.Application
 
         Services = _host.Services;
 
-        // Initialize database
-        var db = Services.GetRequiredService<IDatabaseService>();
-        await db.InitializeAsync();
+        // Initialize database + purge expired quarantine items from previous runs
+        try
+        {
+            var db = Services.GetRequiredService<IDatabaseService>();
+            await db.InitializeAsync();
+            await Services.GetRequiredService<IQuarantineService>().CleanExpiredAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Startup initialization failed");
+        }
 
         Log.Information("Uninstra started - v{Version}", Core.UninstraInfo.Version);
     }
+
+    private static LogEventLevel ParseLogLevel(string level) => level switch
+    {
+        "Verbose" or "Trace" => LogEventLevel.Verbose,
+        "Debug" => LogEventLevel.Debug,
+        "Warning" => LogEventLevel.Warning,
+        "Error" => LogEventLevel.Error,
+        "Fatal" => LogEventLevel.Fatal,
+        _ => LogEventLevel.Information
+    };
 
     private static void ConfigureServices(IServiceCollection services)
     {
@@ -64,6 +85,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IHistoryRepository, SqliteHistoryRepository>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<IReportService, ReportService>();
+        services.AddSingleton<IQuarantineService, FileQuarantineService>();
+        services.AddSingleton<RegistryBackupService>();
 
         // Windows services
         services.AddSingleton<IApplicationScanner, RegistryApplicationScanner>();
@@ -73,6 +96,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IBrowserExtensionScanner, BrowserExtensionScanner>();
         services.AddSingleton<IWindowsAppScanner, WindowsAppScanner>();
         services.AddSingleton<IJunkScanner, JunkScannerService>();
+        services.AddSingleton<IElevatedHelperClient, ElevatedHelperClient>();
         services.AddSingleton<ILeftoverCleanupService, LeftoverCleanupService>();
         services.AddSingleton<IInstallMonitorService, InstallMonitorService>();
 
@@ -80,10 +104,12 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ScanCoordinator>();
         services.AddSingleton<BatchUninstallCoordinator>();
         services.AddSingleton<ReportCoordinator>();
+        services.AddSingleton<OperationAuditService>();
 
         // UI services
         services.AddSingleton<NavigationService>();
         services.AddSingleton<ThemeService>();
+        services.AddSingleton<IToastService, ToastService>();
 
         // ViewModels
         services.AddTransient<MainViewModel>();
@@ -114,11 +140,36 @@ public partial class App : System.Windows.Application
         base.OnExit(e);
     }
 
+    // Throttle state for identical dispatcher-error dialogs.
+    private string? _lastErrorDialogMessage;
+    private long _lastErrorDialogTicks;
+    private int _suppressedIdenticalErrors;
+
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Fatal(e.Exception, "Unhandled dispatcher exception");
+
+        // Layout/render loops can raise the same exception dozens of times per
+        // second; showing one modal per occurrence floods the user. Suppress
+        // IDENTICAL messages within a short window — every failure is still logged.
+        var now = Environment.TickCount64;
+        if (e.Exception.Message == _lastErrorDialogMessage &&
+            now - _lastErrorDialogTicks < 5_000)
+        {
+            _suppressedIdenticalErrors++;
+            e.Handled = true;
+            return;
+        }
+
+        var suppressedNote = _suppressedIdenticalErrors > 0
+            ? $"\n\n({_suppressedIdenticalErrors} identical errors were suppressed)"
+            : string.Empty;
+        _suppressedIdenticalErrors = 0;
+        _lastErrorDialogMessage = e.Exception.Message;
+        _lastErrorDialogTicks = now;
+
         MessageBox.Show(
-            $"An unexpected error occurred:\n\n{e.Exception.Message}\n\nThe application will continue running. Check logs for details.",
+            $"An unexpected error occurred:\n\n{e.Exception.Message}{suppressedNote}\nThe application will continue running. Check logs for details.",
             "Uninstra - Error", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }

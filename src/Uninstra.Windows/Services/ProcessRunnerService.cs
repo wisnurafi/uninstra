@@ -26,19 +26,9 @@ public sealed class ProcessRunnerService : IProcessRunner
         _logger.LogInformation("Running: {Exe} {Args}", executable, arguments);
         progress?.Report($"Starting: {Path.GetFileName(executable)}");
 
-        var psi = new ProcessStartInfo
-        {
-            FileName = executable,
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = false, // Allow UI for interactive uninstallers
-            RedirectStandardOutput = false,
-            RedirectStandardError = false
-        };
-
         try
         {
-            using var process = Process.Start(psi);
+            using var process = StartProcessWithUacFallback(executable, arguments, progress);
             if (process is null)
                 return OperationResult.Failure<int>("PROC_START", "Failed to start process");
 
@@ -73,6 +63,53 @@ public sealed class ProcessRunnerService : IProcessRunner
         {
             _logger.LogError(ex, "Error running process: {Exe}", executable);
             return OperationResult.Failure<int>("PROC_ERROR", ex.Message, ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Starts the process directly; on Win32 error 740 ("The requested operation
+    /// requires elevation") relaunches it through the shell with verb "runas",
+    /// which triggers the standard UAC prompt. This lets non-elevated Uninstra
+    /// run installers/uninstallers that carry a requireAdministrator manifest.
+    /// </summary>
+    private System.Diagnostics.Process? StartProcessWithUacFallback(
+        string executable, string arguments, IProgress<string>? progress)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = executable,
+            Arguments = arguments,
+            UseShellExecute = false,
+            CreateNoWindow = false, // Allow UI for interactive uninstallers
+        };
+
+        try
+        {
+            return System.Diagnostics.Process.Start(psi);
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 740)
+        {
+            _logger.LogInformation("Process requires elevation, relaunching via UAC: {Exe}", executable);
+            progress?.Report($"Elevation required for {Path.GetFileName(executable)} — approving UAC…");
+
+            var elevatedPsi = new ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = arguments,
+                UseShellExecute = true,  // required for the runas shell verb
+                Verb = "runas",          // triggers the UAC consent dialog
+                CreateNoWindow = false,
+            };
+
+            try
+            {
+                return System.Diagnostics.Process.Start(elevatedPsi);
+            }
+            catch (System.ComponentModel.Win32Exception uacEx) when (uacEx.NativeErrorCode == 1223)
+            {
+                _logger.LogInformation("UAC elevation declined by user for {Exe}", executable);
+                throw; // mapped to UAC_CANCELLED by the existing catch below
+            }
         }
     }
 

@@ -3,6 +3,7 @@ namespace Uninstra.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
@@ -17,6 +18,10 @@ public sealed partial class ProgramsViewModel : ObservableObject
     private readonly ScanCoordinator _scanCoordinator;
     private readonly IUninstallService _uninstallService;
     private readonly ILeftoverScanner _leftoverScanner;
+    private readonly ISettingsService _settingsService;
+    private readonly OperationAuditService _auditService;
+    private readonly IElevatedHelperClient _elevatedClient;
+    private readonly ILogger<ProgramsViewModel> _logger;
     private List<InstalledApplication> _allApps = [];
 
     [ObservableProperty] private ObservableCollection<ProgramItemViewModel> _programs = [];
@@ -30,11 +35,22 @@ public sealed partial class ProgramsViewModel : ObservableObject
     [ObservableProperty] private long _selectedTotalSize;
     [ObservableProperty] private bool _hasSelection;
 
-    public ProgramsViewModel(ScanCoordinator scanCoordinator, IUninstallService uninstallService, ILeftoverScanner leftoverScanner)
+    public ProgramsViewModel(
+        ScanCoordinator scanCoordinator,
+        IUninstallService uninstallService,
+        ILeftoverScanner leftoverScanner,
+        ISettingsService settingsService,
+        OperationAuditService auditService,
+        IElevatedHelperClient elevatedClient,
+        ILogger<ProgramsViewModel> logger)
     {
         _scanCoordinator = scanCoordinator;
         _uninstallService = uninstallService;
         _leftoverScanner = leftoverScanner;
+        _settingsService = settingsService;
+        _auditService = auditService;
+        _elevatedClient = elevatedClient;
+        _logger = logger;
     }
 
     public string[] Categories { get; } =
@@ -119,12 +135,28 @@ public sealed partial class ProgramsViewModel : ObservableObject
         var selected = Programs.Where(p => p.IsSelected).ToList();
         if (selected.Count == 0) return;
 
-        foreach (var item in selected)
+        var settings = _settingsService.Load();
+
+        // One confirmation for the whole batch (P0: settings were never consulted)
+        if (settings.ConfirmBeforeUninstall)
         {
-            await DeepUninstallAsync(item);
+            var names = string.Join("\n  • ", selected.Take(8).Select(s => s.App.DisplayName));
+            if (selected.Count > 8) names += $"\n  • …and {selected.Count - 8} more";
+            var confirm = MessageBox.Show(
+                $"Deep uninstall {selected.Count} program(s)?\n\n  • {names}\n\n" +
+                "Each program's own uninstaller runs first, then leftovers are scanned.",
+                "Confirm batch uninstall", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
         }
 
-        await LoadAsync();
+        foreach (var item in selected.ToList())
+        {
+            var ok = await DeepUninstallCoreAsync(item, askConfirmation: false);
+            if (!ok) break; // user declined mid-batch dialogs / critical failure
+        }
+
+        ClearSelection();
+        if (settings.RefreshAfterUninstall) await LoadAsync();
     }
 
     [RelayCommand]
@@ -138,50 +170,129 @@ public sealed partial class ProgramsViewModel : ObservableObject
     private async Task UninstallSingle(ProgramItemViewModel? item)
     {
         if (item is null) return;
-        await DeepUninstallAsync(item);
-        await LoadAsync();
+        await DeepUninstallCoreAsync(item, askConfirmation: true);
+        if (_settingsService.Load().RefreshAfterUninstall) await LoadAsync();
     }
 
-    private async Task DeepUninstallAsync(ProgramItemViewModel item)
+    /// <summary>
+    /// Full deep-uninstall pipeline for one program:
+    /// confirm → restore point → uninstall → CANCELLED GUARD → leftover scan → review dialog → audit trail.
+    /// Returns false when the flow should stop (user cancel / hard failure).
+    /// </summary>
+    private async Task<bool> DeepUninstallCoreAsync(ProgramItemViewModel item, bool askConfirmation)
     {
-        // Phase 1: Run the normal uninstaller
-        StatusText = $"Uninstalling: {item.App.DisplayName}...";
-        var result = await _uninstallService.UninstallAsync(item.App);
+        var app = item.App;
+        var settings = _settingsService.Load();
+
+        if (askConfirmation && settings.ConfirmBeforeUninstall)
+        {
+            var confirm = MessageBox.Show(
+                $"Deep uninstall {app.DisplayName}?\n\n" +
+                "Its uninstaller runs first, then Uninstra scans for leftover files and registry entries.",
+                "Confirm deep uninstall", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return false;
+        }
+
+        if (app.IsProtected && !settings.AdvancedMode)
+        {
+            MessageBox.Show(
+                $"{app.DisplayName} is a protected application.\n" +
+                "Enable Advanced Mode in Settings to override this protection.",
+                "Protected application", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        var audit = await _auditService.StartAsync(OperationType.DeepUninstall, app);
+
+        // Optional restore point before touching anything.
+        // Best-effort: an elevation/pipe failure must never abort the uninstall —
+        // it only downgrades the safety net (recorded in the audit trail).
+        var restorePointStatus = "";
+        if (settings.CreateRestorePoint)
+        {
+            StatusText = $"Creating system restore point before removing {app.DisplayName}...";
+            try
+            {
+                var rp = await _elevatedClient.ExecuteAsync(
+                    ElevatedOperationType.CreateRestorePoint,
+                    $"Before uninstalling {app.DisplayName}");
+                restorePointStatus = rp.Success ? "Created" : rp.Message;
+                StatusText = rp.Success
+                    ? "Restore point created."
+                    : $"Restore point unavailable ({rp.Message}). Continuing.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Restore-point elevation failed before uninstalling {App}", app.DisplayName);
+                restorePointStatus = $"Unavailable: {ex.Message}";
+                StatusText = $"Restore point unavailable ({ex.Message}). Continuing.";
+            }
+        }
+
+        // ── Phase 1: run the vendor uninstaller ──
+        StatusText = $"Uninstalling: {app.DisplayName}...";
+        var result = await _uninstallService.UninstallAsync(app);
 
         if (!result.IsSuccess)
         {
-            StatusText = $"Failed: {item.App.DisplayName} — {result.Error?.Message}";
+            StatusText = $"Failed: {app.DisplayName} — {result.Error?.Message}";
+            await _auditService.CompleteAsync(audit, UninstallStatus.Failed,
+                restorePointStatus: restorePointStatus,
+                errorCount: 1);
             MessageBox.Show(
-                $"Uninstall failed for {item.App.DisplayName}:\n\n{result.Error?.Message}",
+                $"Uninstall failed for {app.DisplayName}:\n\n{result.Error?.Message}",
                 "Uninstra", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            return false;
         }
 
-        StatusText = $"Uninstall complete. Scanning for leftovers...";
+        // ── P0 SAFETY GUARD ──────────────────────────────────────────
+        // A cancelled uninstall means the app is STILL INSTALLED.
+        // Scanning/deleting its registry keys here would orphan it permanently.
+        if (result.Value == UninstallStatus.Cancelled)
+        {
+            StatusText = $"Cancelled: {app.DisplayName} was not uninstalled. No cleanup performed.";
+            await _auditService.CompleteAsync(audit, UninstallStatus.Cancelled,
+                restorePointStatus: restorePointStatus);
+            return false;
+        }
 
-        // Phase 2: Scan for leftover files/registry
-        var leftovers = await _leftoverScanner.ScanAsync(item.App);
+        StatusText = "Uninstall complete. Scanning for leftovers...";
 
-        // Phase 3: Show Deep Uninstall dialog
+        // ── Phase 2: leftover scan ──
+        var leftovers = await _leftoverScanner.ScanAsync(app);
+
+        // ── Phase 3: review dialog ──
         var vm = App.Services.GetRequiredService<DeepUninstallViewModel>();
         var dialog = new DeepUninstallDialog(vm)
         {
             Owner = System.Windows.Application.Current.MainWindow
         };
-        dialog.ShowResults(item.App.DisplayName, leftovers);
+        dialog.ShowResults(app.DisplayName, leftovers);
         dialog.ShowDialog();
+
+        var cleanedCount = dialog.CleanupPerformed ? dialog.CleanedCount : 0;
+        var freedBytes = dialog.CleanupPerformed ? dialog.FreedBytes : 0;
 
         if (dialog.CleanupPerformed)
         {
-            StatusText = $"Deep uninstall complete: {item.App.DisplayName} — " +
-                         $"{dialog.CleanedCount} leftovers cleaned";
+            StatusText = $"Deep uninstall complete: {app.DisplayName} — {cleanedCount} leftovers cleaned";
         }
         else
         {
             StatusText = leftovers.Count == 0
-                ? $"Clean uninstall: {item.App.DisplayName} — no leftovers found"
-                : $"Uninstall complete: {item.App.DisplayName} — {leftovers.Count} leftovers skipped";
+                ? $"Clean uninstall: {app.DisplayName} — no leftovers found"
+                : $"Uninstall complete: {app.DisplayName} — {leftovers.Count} leftovers skipped";
         }
+
+        await _auditService.CompleteAsync(audit, result.Value,
+            itemsDetected: leftovers.Count,
+            itemsCleaned: cleanedCount,
+            itemsSkipped: dialog.CleanupPerformed ? Math.Max(0, leftovers.Count - cleanedCount) : leftovers.Count,
+            recoveredBytes: freedBytes,
+            restorePointStatus: restorePointStatus,
+            quarantineAvailable: cleanedCount > 0);
+        return true;
     }
 
     [RelayCommand]

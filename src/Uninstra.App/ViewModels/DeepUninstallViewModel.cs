@@ -116,26 +116,51 @@ public sealed partial class DeepUninstallViewModel : ObservableObject
             StatusText = $"Cleaning ({p.Current}/{p.Total}): {p.CurrentItem}";
         });
 
-        var result = await _cleanupService.CleanAsync(selected, progress);
-
-        IsWorking = false;
-        Phase = "done";
-        DialogResult = true;
-
-        if (result.IsSuccess)
+        // Hard-failure guard: an unexpected exception from the cleanup service
+        // must surface as dialog state, never as an unhandled dispatcher crash.
+        try
         {
-            var summary = result.Value;
-            CleanedCount = summary.Cleaned;
-            FailedCount = summary.Failed;
-            FreedBytes = summary.FreedBytes;
-            StatusText = $"Cleanup complete: {summary.Cleaned} items cleaned, {FormatSize(summary.FreedBytes)} freed";
-            SummaryText = $"✅ {summary.Cleaned} cleaned";
-            if (summary.Failed > 0) SummaryText += $"  ⚠ {summary.Failed} failed";
-            if (summary.Skipped > 0) SummaryText += $"  ⏭ {summary.Skipped} skipped";
+            var result = await _cleanupService.CleanAsync(selected, progress, applicationDisplayName: AppName);
+
+            // Populate ALL result state BEFORE flipping the phase: the dialog's
+            // phase watcher swaps in the completion panel (and reads these
+            // values) the instant Phase becomes "done" — assigning afterwards
+            // left the stats showing zeros.
+            if (result.IsSuccess && result.Value is not null)
+            {
+                var summary = result.Value;
+                CleanedCount = summary.Cleaned;
+                FailedCount = summary.Failed;
+                FreedBytes = summary.FreedBytes;
+                StatusText = $"Cleanup complete: {summary.Cleaned} items cleaned, {FormatSize(summary.FreedBytes)} freed";
+                SummaryText = $"{summary.Cleaned} cleaned";
+                if (summary.Failed > 0) SummaryText += $"  |  {summary.Failed} failed";
+                if (summary.Skipped > 0) SummaryText += $"  |  {summary.Skipped} skipped";
+            }
+            else
+            {
+                StatusText = $"Cleanup error: {result.Error?.Message}";
+                SummaryText = "Cleanup encountered errors";
+            }
+
+            IsWorking = false;
+            Phase = "done";
+            DialogResult = true;
         }
-        else
+        catch (OperationCanceledException)
         {
-            StatusText = $"Cleanup error: {result.Error?.Message}";
+            IsWorking = false;
+            Phase = "review";
+            DialogResult = false;
+            StatusText = "Cleanup cancelled — only items finished before the cancel were removed.";
+            SummaryText = "Cancelled";
+        }
+        catch (Exception ex)
+        {
+            IsWorking = false;
+            Phase = "done";
+            DialogResult = false;
+            StatusText = $"Cleanup error: {ex.Message}";
             SummaryText = "Cleanup encountered errors";
         }
     }

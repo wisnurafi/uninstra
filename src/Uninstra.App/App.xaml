@@ -19,6 +19,7 @@
             <conv:FileSizeConverter x:Key="FileSizeConverter"/>
             <conv:FileSizeConverter x:Key="BytesToSizeConverter"/>
             <conv:StringToVisibilityConverter x:Key="StringToVisibility"/>
+            <conv:DateFormatConverter x:Key="DateFormatConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -15,6 +15,7 @@
     <ProjectReference Include="..\Uninstra.Application\Uninstra.Application.csproj" />
     <ProjectReference Include="..\Uninstra.Infrastructure\Uninstra.Infrastructure.csproj" />
     <ProjectReference Include="..\Uninstra.Windows\Uninstra.Windows.csproj" />
+    <ProjectReference Include="..\Uninstra.ElevatedHelper\Uninstra.ElevatedHelper.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

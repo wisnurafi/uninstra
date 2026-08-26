@@ -16,7 +16,7 @@
                     <TextBlock Text="Quarantine" FontSize="20" FontWeight="SemiBold"/>
                     <Border Background="{DynamicResource PrimaryTranslucentBrush}"
                             CornerRadius="6" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="0" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock Text="{Binding Items.Count, FallbackValue=0}" FontSize="11" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryBrush}"/>
                     </Border>
                 </StackPanel>
@@ -25,27 +25,124 @@
             </StackPanel>
         </Border>
 
-        <!-- Empty State -->
-        <Border Grid.Row="1" Margin="20,0">
-            <Border Background="{DynamicResource GlassBackgroundBrush}"
-                    BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
-                    CornerRadius="12" Padding="32">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource SurfaceBrush}"
-                            HorizontalAlignment="Center" Margin="0,0,0,16">
-                        <Path Data="{DynamicResource Icon_Quarantine}" Fill="{DynamicResource TextMutedBrush}"
-                              Width="28" Height="28" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"/>
-                    </Border>
-                    <TextBlock Text="No items in quarantine" FontSize="16" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                    <TextBlock Text="Deleted files are stored here before permanent removal" FontSize="11"
-                               Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                </StackPanel>
+        <!-- Content: item list OR premium empty state -->
+        <Grid Grid.Row="1">
+            <!-- Item list -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding Items.Count, Converter={StaticResource CountToVisibility}}">
+                <ItemsControl ItemsSource="{Binding Items}" Margin="20,4,20,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{DynamicResource GlassCard}" CornerRadius="10"
+                                    Padding="16,12" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Type icon -->
+                                    <Path Grid.Column="0" Data="{DynamicResource Icon_Box}"
+                                          Fill="{DynamicResource WarningBrush}" Opacity="0.9"
+                                          Width="22" Height="22" Stretch="Uniform"
+                                          VerticalAlignment="Center" Margin="0,0,14,0"/>
+
+                                    <!-- Name / meta -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ApplicationName}" FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="  ·  " FontSize="11"
+                                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="{Binding CreatedAt, Converter={StaticResource DateFormatConverter}, ConverterParameter='MMM d, yyyy HH:mm'}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding OriginalPath}" FontSize="10.5"
+                                                   Foreground="{DynamicResource TextMutedBrush}" Opacity="0.75"
+                                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Actions -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <Button Command="{Binding DataContext.RestoreCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{DynamicResource GhostButton}" Padding="12,6" FontSize="12"
+                                                ToolTip="Restore to original location">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{DynamicResource Icon_Restore}"
+                                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                      Width="12" Height="12" Stretch="Uniform"
+                                                      Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Restore" FontWeight="Medium"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding DataContext.PermanentDeleteCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{DynamicResource IconButton}" Margin="6,0,0,0"
+                                                ToolTip="Permanently delete">
+                                            <Path Data="{DynamicResource Icon_Delete}"
+                                                  Fill="{DynamicResource DangerBrush}"
+                                                  Width="15" Height="15" Stretch="Uniform"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Premium empty state -->
+            <Border Margin="20,0" Padding="0,24"
+                    Visibility="{Binding Items.Count, Converter={StaticResource CountToVisibilityInverse}}">
+                <Border Background="{DynamicResource GlassBackgroundBrush}"
+                        BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
+                        CornerRadius="12" Padding="32"
+                        VerticalAlignment="Center" HorizontalAlignment="Center" MinWidth="420">
+                    <StackPanel HorizontalAlignment="Center" MaxWidth="400">
+                        <!-- Large muted vector icon -->
+                        <Path Data="{DynamicResource Icon_Quarantine}"
+                              Fill="{DynamicResource TextMutedBrush}" Opacity="0.4"
+                              Width="48" Height="48" Stretch="Uniform"
+                              HorizontalAlignment="Center" Margin="0,0,0,18"/>
+
+                        <TextBlock Text="No items in quarantine" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Deleted files are stored here before permanent removal, so they can be restored if something goes wrong."
+                                   FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                   TextWrapping="Wrap" MaxWidth="360" Margin="0,0,0,20"/>
+
+                        <!-- In-card action -->
+                        <Button Style="{DynamicResource GhostButton}" Command="{Binding LoadCommand}"
+                                Padding="16,7" FontSize="12" HorizontalAlignment="Center"
+                                ToolTip="Re-check the quarantine folder">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{DynamicResource Icon_Refresh}"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Width="13" Height="13" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Refresh" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
             </Border>
-        </Border>
+        </Grid>
 
         <!-- Status -->
-        <TextBlock Grid.Row="2" Text="Empty" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
-                   Margin="20,0,20,12"/>
+        <TextBlock Grid.Row="2" Text="{Binding StatusText, FallbackValue=Empty}" FontSize="10"
+                   Foreground="{DynamicResource TextMutedBrush}" Margin="20,0,20,12"/>
     </Grid>
 </UserControl>

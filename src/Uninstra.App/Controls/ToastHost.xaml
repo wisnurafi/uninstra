@@ -1,0 +1,16 @@
+<UserControl x:Class="Uninstra.App.Controls.ToastHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Toast overlay. Deliberately NO Background on the root: every pixel without
+        a card stays hit-test transparent, so hosting it stretched across the whole
+        window never blocks input on the UI underneath. Cards themselves are built
+        in code-behind (see ToastHost.xaml.cs) so each one owns its animations and
+        auto-dismiss timer. Top-right placement comes from the alignment below; the
+        44px top margin clears the 32px custom caption strip.
+    -->
+    <StackPanel x:Name="ToastStack"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,44,16,0"/>
+</UserControl>

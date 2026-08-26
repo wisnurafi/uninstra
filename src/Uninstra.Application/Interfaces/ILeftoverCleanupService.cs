@@ -8,7 +8,8 @@ public interface ILeftoverCleanupService
     Task<OperationResult<CleanupSummary>> CleanAsync(
         IReadOnlyList<LeftoverCandidate> items,
         IProgress<CleanupProgress>? progress = null,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        string? applicationDisplayName = null);
 }
 
 public record CleanupSummary(int TotalItems, int Cleaned, int Failed, int Skipped, long FreedBytes);

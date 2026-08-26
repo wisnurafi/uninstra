@@ -18,6 +18,7 @@ public sealed record ScoringContext
     public bool PublisherAndNameMatch { get; init; }
     public bool RegistryValuePointsToExecutable { get; init; }
     public bool NormalizedNameMatches { get; init; }
+    public DateTime LastModifiedUtc { get; init; }
 
     // Penalties
     public bool NameVeryShort { get; init; }
@@ -53,6 +54,13 @@ public static class ConfidenceScorer
         if (ctx.PublisherAndNameMatch)            { score += 20; evidence.Add("Publisher and program name match"); }
         if (ctx.RegistryValuePointsToExecutable) { score += 15; evidence.Add("Registry value points to executable"); }
         if (ctx.NormalizedNameMatches)            { score += 10; evidence.Add("Normalized name matches"); }
+
+        // Age signal: a directory untouched for 60+ days after an app is gone is stronger evidence
+        if (ctx.LastModifiedUtc != default && DateTime.UtcNow - ctx.LastModifiedUtc > TimeSpan.FromDays(60))
+        {
+            score += 10;
+            evidence.Add("Unmodified for more than 60 days");
+        }
 
         // Penalties
         if (ctx.NameVeryShort)        { score -= 30; evidence.Add("Penalty: name very short"); }

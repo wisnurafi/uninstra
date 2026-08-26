@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Models;
+using Uninstra.Core.Validation;
 
 public sealed partial class ForceUninstallViewModel : ObservableObject
 {
@@ -15,6 +16,12 @@ public sealed partial class ForceUninstallViewModel : ObservableObject
     [ObservableProperty] private string _statusText = "Drop an executable or folder, or browse to select";
     [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private ObservableCollection<LeftoverCandidate> _leftovers = [];
+
+    /// <summary>
+    /// Non-empty when the target name is generic — consumed by the red warning banner
+    /// on ForceUninstallPage. Empty string hides the banner.
+    /// </summary>
+    [ObservableProperty] private string _genericNameWarning = "";
 
     public ForceUninstallViewModel(ILeftoverScanner leftoverScanner, IApplicationScanner scanner)
     {
@@ -47,17 +54,32 @@ public sealed partial class ForceUninstallViewModel : ObservableObject
                 ? Path.GetDirectoryName(TargetPath) ?? TargetPath
                 : TargetPath;
 
+            var rawName = Path.GetFileNameWithoutExtension(TargetPath);
+            var normalizedName = NameNormalizer.Normalize(rawName);
+
+            // P0 safety: generic targets match other programs' folders/shortcuts/startup entries.
+            GenericNameWarning = NameNormalizer.IsGenericName(normalizedName)
+                ? $"'{rawName}' is a generic name. Results may include files belonging to OTHER programs — " +
+                  "review every row's evidence before cleaning anything."
+                : "";
+
             var fakeApp = new InstalledApplication
             {
                 Id = Guid.NewGuid().ToString("N")[..16],
-                DisplayName = Path.GetFileNameWithoutExtension(TargetPath),
-                NormalizedName = Path.GetFileNameWithoutExtension(TargetPath).ToLowerInvariant(),
+                DisplayName = rawName,
+                NormalizedName = normalizedName,
                 InstallLocation = installDir
             };
 
             var results = await _leftoverScanner.ScanAsync(fakeApp);
-            Leftovers = new ObservableCollection<LeftoverCandidate>(results);
-            StatusText = $"Found {results.Count} related items";
+
+            // NEVER auto-select in force-uninstall mode — the identity of the target
+            // is inferred from a path, not verified against an uninstall entry.
+            Leftovers = new ObservableCollection<LeftoverCandidate>(
+                results.Select(r => r with { IsSelectedByDefault = false }));
+
+            StatusText = $"Found {results.Count} related items" +
+                (GenericNameWarning.Length > 0 ? " — review carefully" : "");
         }
         catch (Exception ex)
         {

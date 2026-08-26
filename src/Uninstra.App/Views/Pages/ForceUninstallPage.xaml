@@ -2,6 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Uninstra.App.ViewModels">
+    <UserControl.Resources>
+        <!-- ~15% error tint for the generic-name warning banner -->
+        <SolidColorBrush x:Key="ErrorTintBrush" Color="{StaticResource ErrorColor}" Opacity="0.15"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -20,8 +24,47 @@
 
         <!-- Content -->
         <Grid Grid.Row="1" Margin="20,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ═══ Generic-name warning banner (above results) ═══ -->
+            <Border Grid.Row="0" CornerRadius="8" Margin="0,0,0,10" ClipToBounds="True"
+                    Visibility="{Binding GenericNameWarning, Converter={StaticResource StringToVisibility}}">
+                <Border Background="{DynamicResource ErrorTintBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- 3px error accent -->
+                        <Rectangle Grid.Column="0" Fill="{DynamicResource ErrorBrush}"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="14,12,0,12">
+                            <!-- Warning triangle -->
+                            <Grid Width="18" Height="18" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <Path Data="M9,1.5 L17,16.5 L1,16.5 Z"
+                                      Fill="{DynamicResource ErrorBrush}"/>
+                                <Path Data="M8.15,6 H9.85 V10.8 H8.15 Z M8.15,12.3 H9.85 V14 H8.15 Z"
+                                      Fill="#171717"/>
+                            </Grid>
+                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Generic name detected" FontSize="12" FontWeight="Bold"
+                                           Foreground="{DynamicResource ErrorBrush}"/>
+                                <TextBlock Text="{Binding GenericNameWarning}" FontSize="11" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" MaxWidth="560"
+                                           ToolTip="{Binding GenericNameWarning}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Border>
+
             <!-- Empty/initial state -->
-            <StackPanel VerticalAlignment="Top"
+            <StackPanel Grid.Row="1" VerticalAlignment="Top"
                         Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
                 <Border Background="{DynamicResource GlassBackgroundBrush}"
                         BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
@@ -57,10 +100,15 @@
                             Command="{Binding ScanCommand}"
                             ToolTip="Scan for related files and remove"/>
                 </StackPanel>
+
+                <!-- Safer-scan hint -->
+                <TextBlock Text="For safer scans, target the application's install folder rather than a loose .exe file."
+                           FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                           HorizontalAlignment="Center" TextAlignment="Center" Margin="0,10,0,0"/>
             </StackPanel>
 
             <!-- Scanning state -->
-            <Border Background="{DynamicResource GlassBackgroundBrush}"
+            <Border Grid.Row="1" Background="{DynamicResource GlassBackgroundBrush}"
                     BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
                     CornerRadius="12" Padding="32"
                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}">
@@ -72,7 +120,7 @@
             </Border>
 
             <!-- Results list -->
-            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                     Visibility="{Binding Leftovers.Count, Converter={StaticResource CountToVisibility}}">
                 <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"

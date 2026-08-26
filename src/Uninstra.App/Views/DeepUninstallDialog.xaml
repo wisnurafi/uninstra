@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:Uninstra.App.Converters"
+        xmlns:local="clr-namespace:Uninstra.App.Views"
         Title="Deep Uninstall — Leftover Cleanup"
         Width="860" Height="580" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterOwner"
@@ -13,6 +14,45 @@
     <Window.Resources>
         <conv:FileSizeConverter x:Key="FileSizeConverter"/>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <local:ConfidenceToBrushConverter x:Key="ConfidenceToBrush"/>
+
+        <!-- Group-by-type filter chip -->
+        <Style x:Key="FilterChip" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="999"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryTranslucentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PrimaryTranslucentBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -20,6 +60,7 @@
         <Grid x:Name="ReviewPanel" Visibility="{Binding Phase, Converter={StaticResource BoolToVis}, ConverterParameter=notdone}">
             <Grid Margin="20">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -52,12 +93,88 @@
                 </StackPanel>
 
                 <!-- Progress bar -->
-                <ProgressBar Grid.Row="1" Height="3" Margin="0,0,0,12"
+                <ProgressBar Grid.Row="1" Height="3" Margin="0,0,0,10"
                              IsIndeterminate="{Binding IsWorking}"
                              Value="{Binding ProgressValue}" Maximum="{Binding ProgressMax}"/>
 
+                <!-- Group-by-type chips -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,2,0,10">
+                    <RadioButton GroupName="LeftoverTypeChips" IsChecked="True"
+                                 Style="{StaticResource FilterChip}" Tag="All"
+                                 Click="FilterChip_Click" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="All"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountAll" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="LeftoverTypeChips"
+                                 Style="{StaticResource FilterChip}" Tag="Files"
+                                 Click="FilterChip_Click" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Files"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountFiles" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="LeftoverTypeChips"
+                                 Style="{StaticResource FilterChip}" Tag="Registry"
+                                 Click="FilterChip_Click" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Registry"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountRegistry" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="LeftoverTypeChips"
+                                 Style="{StaticResource FilterChip}" Tag="Shortcuts"
+                                 Click="FilterChip_Click" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Shortcuts"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountShortcuts" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="LeftoverTypeChips"
+                                 Style="{StaticResource FilterChip}" Tag="Startup"
+                                 Click="FilterChip_Click" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Startup"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountStartup" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="LeftoverTypeChips"
+                                 Style="{StaticResource FilterChip}" Tag="Other"
+                                 Click="FilterChip_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Other"/>
+                            <Border Background="{DynamicResource PrimaryTranslucentBrush}" CornerRadius="999"
+                                    Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChipCountOther" Text="0" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+
                 <!-- Leftover items list -->
-                <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                     <DataGrid ItemsSource="{Binding Leftovers}" IsReadOnly="True"
                               AutoGenerateColumns="False"
@@ -66,21 +183,122 @@
                               VirtualizingPanel.VirtualizationMode="Recycling"
                               SelectionMode="Single" CanUserSortColumns="True"
                               BorderThickness="0">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <!-- Protected rows: muted styling; the lock glyph marks them -->
+                                    <DataTrigger Binding="{Binding IsProtected}" Value="True">
+                                        <Setter Property="Opacity" Value="0.55"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="" Width="50" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
-                                                  IsEnabled="{Binding IsProtected, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Grid Width="34" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0">
+                                                <CheckBox.Style>
+                                                    <Style TargetType="CheckBox">
+                                                        <Style.Triggers>
+                                                            <!-- Protected rows: checkbox is display-only -->
+                                                            <DataTrigger Binding="{Binding IsProtected}" Value="True">
+                                                                <Setter Property="IsHitTestVisible" Value="False"/>
+                                                                <Setter Property="Opacity" Value="0.25"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </CheckBox.Style>
+                                            </CheckBox>
+                                            <Path Data="M1.5,5 H9.5 V11 H1.5 Z M3.5,5 V3.5 A2,2 0 0 1 7.5,3.5 V5 H6.2 V3.5 A0.65,0.65 0 0 0 4.85,3.5 V5 Z"
+                                                  Fill="{DynamicResource WarningBrush}"
+                                                  Width="11" Height="11" Stretch="Uniform"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                  ToolTip="Protected by Uninstra — cannot be selected"
+                                                  Visibility="Collapsed">
+                                                <Path.Style>
+                                                    <Style TargetType="Path">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsProtected}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Path.Style>
+                                            </Path>
+                                        </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" MinWidth="180"/>
-                            <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="90"/>
-                            <DataGridTextColumn Header="Size" Binding="{Binding Size, Converter={StaticResource FileSizeConverter}}" Width="80"/>
-                            <DataGridTextColumn Header="Confidence" Binding="{Binding Confidence}" Width="100"/>
-                            <DataGridTextColumn Header="Risk" Binding="{Binding Risk}" Width="70"/>
+                            <DataGridTemplateColumn Header="Item" Width="*" MinWidth="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Medium"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                            <TextBlock.ToolTip>
+                                                <!-- Evidence tooltip: confidence chip color-coded + joined evidence text -->
+                                                <Border Background="{DynamicResource CardBrush}"
+                                                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                        CornerRadius="8" Padding="12,10" MaxWidth="420">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="4"
+                                                                    Padding="6,1">
+                                                                <TextBlock Text="{Binding Confidence}" FontSize="10" FontWeight="SemiBold"
+                                                                           Foreground="{Binding Confidence, Converter={StaticResource ConfidenceToBrush}}"/>
+                                                            </Border>
+                                                            <TextBlock Text="{Binding Risk, StringFormat='Risk: {0}'}" FontSize="10"
+                                                                       Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="EVIDENCE" FontSize="9" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3"/>
+                                                        <TextBlock Text="{Binding Evidence}" FontSize="11" LineHeight="15"
+                                                                   TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </TextBlock.ToolTip>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="90">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size, Converter={StaticResource FileSizeConverter}}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Confidence" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Confidence}" FontSize="11" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding Confidence, Converter={StaticResource ConfidenceToBrush}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Risk" Binding="{Binding Risk}" Width="70">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="180">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -95,7 +313,7 @@
                 </Border>
 
                 <!-- Selection summary -->
-                <Border Grid.Row="3" Background="{DynamicResource GlassBackgroundBrush}"
+                <Border Grid.Row="4" Background="{DynamicResource GlassBackgroundBrush}"
                         BorderBrush="{DynamicResource GlassBorderBrush}" BorderThickness="1"
                         CornerRadius="8" Padding="16,10" Margin="0,12,0,0">
                     <DockPanel>
@@ -122,7 +340,7 @@
                 </Border>
 
                 <!-- Bottom buttons -->
-                <DockPanel Grid.Row="4" Margin="0,16,0,0">
+                <DockPanel Grid.Row="5" Margin="0,16,0,0">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Clean Selected" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding CleanSelectedCommand}"
