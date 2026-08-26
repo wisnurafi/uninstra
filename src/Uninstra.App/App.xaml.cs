@@ -19,12 +19,30 @@ using Uninstra.Windows.Services;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private Mutex? _singleInstanceMutex;
 
     public static IServiceProvider Services { get; private set; } = null!;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Single-instance guard: a second copy racing this one would contend
+        // over SQLite writes and quarantine moves. Local\ scope = per user
+        // session (data lives under %LOCALAPPDATA%, so separate users may run
+        // their own copies concurrently).
+        _singleInstanceMutex = new Mutex(
+            initiallyOwned: true,
+            $@"Local\{Uninstra.Core.UninstraInfo.AppId}.SingleInstance",
+            out var createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show(
+                "Uninstra is already running.",
+                "Uninstra", MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
 
         // Global exception handlers
         DispatcherUnhandledException += OnDispatcherUnhandledException;
@@ -137,6 +155,17 @@ public partial class App : System.Windows.Application
             _host.Dispose();
         }
         await Log.CloseAndFlushAsync();
+
+        try
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+            _singleInstanceMutex?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Single-instance mutex release skipped");
+        }
+
         base.OnExit(e);
     }
 
