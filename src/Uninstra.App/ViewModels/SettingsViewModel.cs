@@ -24,7 +24,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _scanStartup = true;
     [ObservableProperty] private string _logLevel = "Information";
 
-    public string[] Themes { get; } = ["Dark", "Light", "System"];
+    // Only Dark ships today — Themes/LightTheme.xaml doesn't exist yet, so
+    // offering "Light"/"System" would silently fail inside ApplyTheme.
+    public string[] Themes { get; } = ["Dark"];
     public int[] RetentionOptions { get; } = [7, 14, 30, -1]; // -1 = never
 
     public SettingsViewModel(ISettingsService settingsService)
