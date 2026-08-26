@@ -42,11 +42,12 @@ public sealed record AppSettings
     // Logging
     public string LogLevel { get; init; } = "Information";
 
-    // Window
-    public double WindowWidth { get; init; } = 1280;
-    public double WindowHeight { get; init; } = 800;
-    public double WindowLeft { get; init; } = double.NaN;
-    public double WindowTop { get; init; } = double.NaN;
+    // Window — nullable because System.Text.Json cannot serialize NaN/Infinity;
+    // plain doubles defaulted to double.NaN and made every Save() throw.
+    public double? WindowWidth { get; init; }
+    public double? WindowHeight { get; init; }
+    public double? WindowLeft { get; init; }
+    public double? WindowTop { get; init; }
     public string SelectedCategory { get; init; } = "All Programs";
     public string SortColumn { get; init; } = "Name";
     public bool SortAscending { get; init; } = true;

@@ -14,13 +14,12 @@ public sealed class JsonSettingsService : ISettingsService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public JsonSettingsService(ILogger<JsonSettingsService> logger)
+    public JsonSettingsService(ILogger<JsonSettingsService> logger, string? settingsPath = null)
     {
-        var appDataPath = Path.Combine(
+        _settingsPath = settingsPath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Uninstra");
-        Directory.CreateDirectory(appDataPath);
-        _settingsPath = Path.Combine(appDataPath, "settings.json");
+            "Uninstra", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath)!);
         _logger = logger;
     }
 
