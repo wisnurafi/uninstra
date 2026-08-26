@@ -3,6 +3,7 @@ namespace Uninstra.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Models;
 
@@ -15,7 +16,13 @@ public sealed partial class JunkCleanerViewModel : ObservableObject
     [ObservableProperty] private string _statusText = "Ready";
     [ObservableProperty] private long _totalJunkSize;
 
-    public JunkCleanerViewModel(IJunkScanner scanner) => _scanner = scanner;
+    private readonly IToastService _toast;
+
+    public JunkCleanerViewModel(IJunkScanner scanner, IToastService toast)
+    {
+        _scanner = scanner;
+        _toast = toast;
+    }
 
     [RelayCommand]
     private async Task ScanAsync()
@@ -27,9 +34,10 @@ public sealed partial class JunkCleanerViewModel : ObservableObject
             var cats = await _scanner.ScanAsync();
             Categories = new ObservableCollection<JunkCategory>(cats);
             TotalJunkSize = cats.Sum(c => c.DetectedSize);
+            _toast.ShowInfo($"{cats.Sum(c => c.ItemCount)} junk items found", "Scan complete");
             StatusText = $"Found {cats.Sum(c => c.ItemCount)} junk items";
         }
-        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; _toast.ShowError(ex.Message, "Junk cleaner failed"); }
         finally { IsScanning = false; }
     }
 
@@ -41,7 +49,11 @@ public sealed partial class JunkCleanerViewModel : ObservableObject
 
         StatusText = "Cleaning...";
         var result = await _scanner.CleanAsync(allItems);
-        StatusText = result.IsSuccess ? "Cleanup complete" : $"Cleanup: {result.Error?.Message}";
+        if (result.IsSuccess)
+                _toast.ShowSuccess("Junk files cleaned successfully", "Junk cleaner");
+            else
+                _toast.ShowError(result.Error?.Message ?? "Unknown error", "Junk cleanup failed");
+            StatusText = result.IsSuccess ? "Cleanup complete" : $"Cleanup: {result.Error?.Message}";
         await ScanAsync();
     }
 }

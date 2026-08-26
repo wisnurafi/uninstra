@@ -3,6 +3,7 @@ namespace Uninstra.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Enums;
 using Uninstra.Core.Models;
@@ -14,7 +15,13 @@ public sealed partial class HistoryViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<HistoryEntry> _records = [];
     [ObservableProperty] private string _statusText = "Ready";
 
-    public HistoryViewModel(IHistoryRepository repository) => _repository = repository;
+    private readonly IToastService _toast;
+
+    public HistoryViewModel(IHistoryRepository repository, IToastService toast)
+    {
+        _repository = repository;
+        _toast = toast;
+    }
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -25,7 +32,7 @@ public sealed partial class HistoryViewModel : ObservableObject
             Records = new ObservableCollection<HistoryEntry>(all.Select(r => new HistoryEntry(r)));
             StatusText = $"{all.Count} history records";
         }
-        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; _toast.ShowError(ex.Message, "History error"); }
     }
 
     [RelayCommand]
@@ -38,8 +45,9 @@ public sealed partial class HistoryViewModel : ObservableObject
                 await _repository.DeleteAsync(record.OperationId);
             Records.Clear();
             StatusText = "History cleared";
+            _toast.ShowSuccess("Operation history has been cleared", "History");
         }
-        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; _toast.ShowError(ex.Message, "History error"); }
     }
 }
 

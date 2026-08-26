@@ -3,6 +3,7 @@ namespace Uninstra.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Models;
 
@@ -14,7 +15,13 @@ public sealed partial class BrowserExtensionsViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _statusText = "Ready";
 
-    public BrowserExtensionsViewModel(IBrowserExtensionScanner scanner) => _scanner = scanner;
+    private readonly IToastService _toast;
+
+    public BrowserExtensionsViewModel(IBrowserExtensionScanner scanner, IToastService toast)
+    {
+        _scanner = scanner;
+        _toast = toast;
+    }
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -26,8 +33,9 @@ public sealed partial class BrowserExtensionsViewModel : ObservableObject
             var exts = await _scanner.ScanAsync();
             Extensions = new ObservableCollection<BrowserExtension>(exts);
             StatusText = $"{exts.Count} extensions found";
+            _toast.ShowInfo($"{exts.Count} browser extensions detected", "Scan complete");
         }
-        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; }
+        catch (Exception ex) { StatusText = $"Error: {ex.Message}"; _toast.ShowError(ex.Message, "Extension scan failed"); }
         finally { IsLoading = false; }
     }
 }

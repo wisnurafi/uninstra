@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Models;
 
@@ -23,12 +24,16 @@ public sealed partial class InstallMonitorViewModel : ObservableObject
     public ObservableCollection<InstallMonitorSession> Sessions { get; } = [];
     public ObservableCollection<ChangeSummary> Changes { get; } = [];
 
+    private readonly IToastService _toast;
+
     public InstallMonitorViewModel(
         IInstallMonitorService monitorService,
-        ILogger<InstallMonitorViewModel> logger)
+        ILogger<InstallMonitorViewModel> logger,
+        IToastService toast)
     {
         _monitorService = monitorService;
         _logger = logger;
+        _toast = toast;
         
         _ = LoadSessionsAsync();
     }
@@ -93,10 +98,14 @@ public sealed partial class InstallMonitorViewModel : ObservableObject
                 PopulateChangesSummary(result.Value);
                 
                 StatusText = $"Monitoring complete. Found {result.Value.CreatedDirectories.Count} new directories, {result.Value.RegistryChanges.Count} registry changes.";
+                _toast.ShowSuccess(
+                    $"Monitoring finished - {result.Value.CreatedDirectories.Count} directories, {result.Value.RegistryChanges.Count} registry changes captured",
+                    "Install monitor");
             }
             else
             {
                 StatusText = result.Error?.Message ?? "Monitoring failed";
+                _toast.ShowError(result.Error?.Message ?? "Monitoring failed", "Install monitor failed");
                 _logger.LogWarning("Install monitoring failed: {Error}", result.Error?.Message);
             }
         }

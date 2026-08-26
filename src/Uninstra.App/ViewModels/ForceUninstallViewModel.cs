@@ -3,6 +3,7 @@ namespace Uninstra.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Core.Models;
 using Uninstra.Core.Validation;
@@ -10,6 +11,7 @@ using Uninstra.Core.Validation;
 public sealed partial class ForceUninstallViewModel : ObservableObject
 {
     private readonly ILeftoverScanner _leftoverScanner;
+    private readonly IToastService _toast;
     private readonly IApplicationScanner _scanner;
 
     [ObservableProperty] private string _targetPath = "";
@@ -23,10 +25,11 @@ public sealed partial class ForceUninstallViewModel : ObservableObject
     /// </summary>
     [ObservableProperty] private string _genericNameWarning = "";
 
-    public ForceUninstallViewModel(ILeftoverScanner leftoverScanner, IApplicationScanner scanner)
+    public ForceUninstallViewModel(ILeftoverScanner leftoverScanner, IApplicationScanner scanner, IToastService toast)
     {
         _leftoverScanner = leftoverScanner;
         _scanner = scanner;
+        _toast = toast;
     }
 
     [RelayCommand]
@@ -78,12 +81,14 @@ public sealed partial class ForceUninstallViewModel : ObservableObject
             Leftovers = new ObservableCollection<LeftoverCandidate>(
                 results.Select(r => r with { IsSelectedByDefault = false }));
 
+            _toast.ShowInfo($"Found {results.Count} related items for force uninstall", "Scan complete");
             StatusText = $"Found {results.Count} related items" +
                 (GenericNameWarning.Length > 0 ? " — review carefully" : "");
         }
         catch (Exception ex)
         {
             StatusText = $"Error: {ex.Message}";
+            _toast.ShowError(ex.Message, "Force-uninstall scan failed");
         }
         finally { IsScanning = false; }
     }

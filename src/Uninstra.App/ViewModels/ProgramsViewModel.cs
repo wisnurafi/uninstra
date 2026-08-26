@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
+using Uninstra.App.Services;
 using Uninstra.Application.Interfaces;
 using Uninstra.Application.Services;
 using Uninstra.App.Views;
@@ -21,6 +22,7 @@ public sealed partial class ProgramsViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly OperationAuditService _auditService;
     private readonly IElevatedHelperClient _elevatedClient;
+    private readonly IToastService _toast;
     private readonly ILogger<ProgramsViewModel> _logger;
     private List<InstalledApplication> _allApps = [];
 
@@ -42,7 +44,8 @@ public sealed partial class ProgramsViewModel : ObservableObject
         ISettingsService settingsService,
         OperationAuditService auditService,
         IElevatedHelperClient elevatedClient,
-        ILogger<ProgramsViewModel> logger)
+        ILogger<ProgramsViewModel> logger,
+        IToastService toast)
     {
         _scanCoordinator = scanCoordinator;
         _uninstallService = uninstallService;
@@ -50,6 +53,7 @@ public sealed partial class ProgramsViewModel : ObservableObject
         _settingsService = settingsService;
         _auditService = auditService;
         _elevatedClient = elevatedClient;
+        _toast = toast;
         _logger = logger;
     }
 
@@ -195,10 +199,9 @@ public sealed partial class ProgramsViewModel : ObservableObject
 
         if (app.IsProtected && !settings.AdvancedMode)
         {
-            MessageBox.Show(
-                $"{app.DisplayName} is a protected application.\n" +
-                "Enable Advanced Mode in Settings to override this protection.",
-                "Protected application", MessageBoxButton.OK, MessageBoxImage.Warning);
+            _toast.ShowWarning(
+                "Enable Advanced Mode in Settings to override protection",
+                $"{app.DisplayName} is protected");
             return false;
         }
 
@@ -240,9 +243,8 @@ public sealed partial class ProgramsViewModel : ObservableObject
             await _auditService.CompleteAsync(audit, UninstallStatus.Failed,
                 restorePointStatus: restorePointStatus,
                 errorCount: 1);
-            MessageBox.Show(
-                $"Uninstall failed for {app.DisplayName}:\n\n{result.Error?.Message}",
-                "Uninstra", MessageBoxButton.OK, MessageBoxImage.Warning);
+            _toast.ShowError(result.Error?.Message ?? "Unknown error",
+                $"Uninstall failed - {app.DisplayName}");
             return false;
         }
 
@@ -277,12 +279,26 @@ public sealed partial class ProgramsViewModel : ObservableObject
         if (dialog.CleanupPerformed)
         {
             StatusText = $"Deep uninstall complete: {app.DisplayName} — {cleanedCount} leftovers cleaned";
+            _toast.ShowSuccess(
+                $"{app.DisplayName} removed - {cleanedCount} leftover item(s) cleaned",
+                "Deep uninstall complete");
         }
         else
         {
-            StatusText = leftovers.Count == 0
-                ? $"Clean uninstall: {app.DisplayName} — no leftovers found"
-                : $"Uninstall complete: {app.DisplayName} — {leftovers.Count} leftovers skipped";
+            if (leftovers.Count == 0)
+            {
+                StatusText = $"Clean uninstall: {app.DisplayName} — no leftovers found";
+                _toast.ShowSuccess(
+                    $"{app.DisplayName} removed cleanly - no leftovers detected",
+                    "Uninstall complete");
+            }
+            else
+            {
+                StatusText = $"Uninstall complete: {app.DisplayName} — {leftovers.Count} leftovers skipped";
+                _toast.ShowWarning(
+                    $"{leftovers.Count} leftover item(s) were kept - review them in Residual Scan",
+                    "Leftovers skipped");
+            }
         }
 
         await _auditService.CompleteAsync(audit, result.Value,
