@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.0] - 2026-08-26
+## [3.0.0] - 2026-08-26
 
 ### Fixed
 - **Authenticode signature evidence** — `GetSigner` used a certificate-file loader on executables, so the digital-signature signal never fired; now extracts the embedded Authenticode cert (with per-file caching)
