@@ -646,14 +646,38 @@ public sealed class LeftoverScanner : ILeftoverScanner
         return false;
     }
 
+    // exe path → Authenticode signer simple name (null = unsigned/unreadable)
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string?> SignerCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Reads the Authenticode signer's subject name from a signed executable.
+    /// Returns null for unsigned, tampered, or unreadable files. Results are
+    /// cached per file — signature extraction is expensive crypto I/O and the
+    /// same exe can be probed across multiple evidence checks.
+    /// </summary>
     private static string? GetSigner(string filePath)
     {
+        if (SignerCache.TryGetValue(filePath, out var cached))
+            return cached;
+
+        string? signer = null;
         try
         {
-            using var cert = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(filePath);
-            return cert.GetNameInfo(X509NameType.SimpleName, false);
+            // Extracts the Authenticode certificate embedded in a signed PE.
+            // SYSLIB0057 obsoletes this entry point, but X509CertificateLoader has
+            // NO equivalent for signed executables (it only reads cert files),
+            // so this remains the sanctioned way to probe Authenticode here.
+#pragma warning disable SYSLIB0057
+            var extracted = X509Certificate.CreateFromSignedFile(filePath);
+#pragma warning restore SYSLIB0057
+            using var cert = extracted as X509Certificate2 ?? new X509Certificate2(extracted);
+            signer = cert.GetNameInfo(X509NameType.SimpleName, false);
         }
-        catch { return null; }
+        catch { /* unsigned or unreadable */ }
+
+        SignerCache[filePath] = signer;
+        return signer;
     }
 
     private static bool HasWriteAccess(string path)
