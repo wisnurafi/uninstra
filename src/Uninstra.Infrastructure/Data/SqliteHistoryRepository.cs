@@ -101,8 +101,20 @@ public sealed class SqliteHistoryRepository : IHistoryRepository
         ApplicationId = reader.GetString(reader.GetOrdinal("ApplicationId")),
         ApplicationName = reader.GetString(reader.GetOrdinal("ApplicationName")),
         Publisher = reader.GetString(reader.GetOrdinal("Publisher")),
-        StartedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("StartedAt"))),
-        CompletedAt = reader.IsDBNull(reader.GetOrdinal("CompletedAt")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("CompletedAt"))),
+        // RoundtripKind honors the trailing 'Z' the writer stored ("O" format):
+        // plain Parse() would assume-local, silently shifting every timestamp by
+        // the UTC offset AND losing Kind — which mis-dated late-evening history
+        // entries by one calendar day in UTC+ locales.
+        StartedAt = DateTime.Parse(
+            reader.GetString(reader.GetOrdinal("StartedAt")),
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind),
+        CompletedAt = reader.IsDBNull(reader.GetOrdinal("CompletedAt"))
+            ? null
+            : DateTime.Parse(
+                reader.GetString(reader.GetOrdinal("CompletedAt")),
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind),
         Status = (UninstallStatus)reader.GetInt32(reader.GetOrdinal("Status")),
         ExitCode = reader.IsDBNull(reader.GetOrdinal("ExitCode")) ? null : reader.GetInt32(reader.GetOrdinal("ExitCode")),
         ItemsDetected = reader.GetInt32(reader.GetOrdinal("ItemsDetected")),

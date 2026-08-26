@@ -11,15 +11,14 @@ public sealed class SqliteDatabaseService : IDatabaseService, IDisposable
     private readonly ILogger<SqliteDatabaseService> _logger;
     private SqliteConnection? _connection;
 
-    public SqliteDatabaseService(ILogger<SqliteDatabaseService> logger)
+    public SqliteDatabaseService(ILogger<SqliteDatabaseService> logger, string? dbPath = null)
     {
-        var appDataPath = Path.Combine(
+        var path = dbPath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Uninstra");
-        Directory.CreateDirectory(appDataPath);
+            "Uninstra", "uninstra.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-        var dbPath = Path.Combine(appDataPath, "uninstra.db");
-        _connectionString = $"Data Source={dbPath}";
+        _connectionString = $"Data Source={path}";
         _logger = logger;
     }
 
