@@ -14,6 +14,7 @@ using Uninstra.Core.Models;
 public sealed partial class ResidualScanViewModel : ObservableObject
 {
     private readonly ILeftoverCleanupService _cleanup;
+    private readonly IElevatedHelperClient _elevated;
     private readonly List<ResidualItemViewModel> _trackedItems = [];
 
     [ObservableProperty] private ObservableCollection<ResidualItemViewModel> _residuals = [];
@@ -31,7 +32,11 @@ public sealed partial class ResidualScanViewModel : ObservableObject
     [ObservableProperty] private string _statusText = "Ready to scan for residual files";
     [ObservableProperty] private int _selectedCount;
 
-    public ResidualScanViewModel(ILeftoverCleanupService cleanup) => _cleanup = cleanup;
+    public ResidualScanViewModel(ILeftoverCleanupService cleanup, IElevatedHelperClient elevated)
+    {
+        _cleanup = cleanup;
+        _elevated = elevated;
+    }
 
     private bool CanStartScan() => !IsScanning && !IsCleaning;
     private bool CanCleanSelected() => SelectedCount > 0 && !IsScanning && !IsCleaning;
@@ -77,7 +82,10 @@ public sealed partial class ResidualScanViewModel : ObservableObject
                         // Check for broken uninstaller
                         if (!string.IsNullOrEmpty(uninstall))
                         {
-                            var exe = uninstall.Trim('"').Split(' ')[0].Trim('"');
+                            // Quote-aware parsing: "C:\Program Files\..." must not
+                            // be split at the first space, or every installed app
+                            // under Program Files becomes a false "broken entry".
+                            var exe = ExtractExecutablePath(uninstall);
                             if (!string.IsNullOrEmpty(exe) && !File.Exists(exe) && !exe.Contains("msiexec", StringComparison.OrdinalIgnoreCase))
                             {
                                 found.Add(new LeftoverCandidate
@@ -93,29 +101,44 @@ public sealed partial class ResidualScanViewModel : ObservableObject
                                     RiskLevel = RiskLevel.Low,
                                     Evidence = [$"Uninstaller not found: {exe}"],
                                     IsSelectedByDefault = false,
-                                    SourceScanner = "ResidualScan"
+                                    SourceScanner = "ResidualScan",
+                                    RequiresElevation = hive == RegistryHive.LocalMachine
                                 });
                             }
                         }
 
-                        // Check for missing install location
+                        // Check for missing install location.
+                        // If the uninstaller itself exists and runs, the app is
+                        // ALIVE — a stale InstallLocation field is cosmetic and
+                        // must never flag the uninstall entry for deletion.
                         if (!string.IsNullOrEmpty(installLoc) && !Directory.Exists(installLoc))
                         {
-                            found.Add(new LeftoverCandidate
+                            var uninstallerAlive = false;
+                            if (!string.IsNullOrEmpty(uninstall))
                             {
-                                Id = Guid.NewGuid().ToString("N")[..16],
-                                ApplicationId = subName,
-                                DisplayName = $"Missing location: {name}",
-                                Type = LeftoverType.RegistryKey,
-                                RegistryHive = hive == RegistryHive.LocalMachine ? RegistryHiveType.LocalMachine : RegistryHiveType.CurrentUser,
-                                RegistryPath = $@"{path}\{subName}",
-                                ConfidenceScore = 85,
-                                ConfidenceLevel = ConfidenceLevel.High,
-                                RiskLevel = RiskLevel.Low,
-                                Evidence = [$"Install location missing: {installLoc}"],
-                                IsSelectedByDefault = false,
-                                SourceScanner = "ResidualScan"
-                            });
+                                var uExe = ExtractExecutablePath(uninstall);
+                                uninstallerAlive = !string.IsNullOrEmpty(uExe) && File.Exists(uExe);
+                            }
+
+                            if (!uninstallerAlive)
+                            {
+                                found.Add(new LeftoverCandidate
+                                {
+                                    Id = Guid.NewGuid().ToString("N")[..16],
+                                    ApplicationId = subName,
+                                    DisplayName = $"Missing location: {name}",
+                                    Type = LeftoverType.RegistryKey,
+                                    RegistryHive = hive == RegistryHive.LocalMachine ? RegistryHiveType.LocalMachine : RegistryHiveType.CurrentUser,
+                                    RegistryPath = $@"{path}\{subName}",
+                                    ConfidenceScore = 85,
+                                    ConfidenceLevel = ConfidenceLevel.High,
+                                    RiskLevel = RiskLevel.Low,
+                                    Evidence = [$"Install location missing: {installLoc}"],
+                                    IsSelectedByDefault = false,
+                                    SourceScanner = "ResidualScan",
+                                    RequiresElevation = hive == RegistryHive.LocalMachine
+                                });
+                            }
                         }
                     }
                 }
@@ -162,6 +185,30 @@ public sealed partial class ResidualScanViewModel : ObservableObject
         IsCleaning = true;
         try
         {
+            // HKLM entries cannot be deleted by a non-admin process. Bring up
+            // the elevated helper ONCE (a single UAC prompt) when any selected
+            // target needs it; without it those deletions would just fail.
+            if (targets.Any(t => t.RequiresElevation))
+            {
+                StatusText = "Some items need administrator rights — approve the UAC prompt…";
+                if (!await _elevated.EnsureRunningAsync())
+                {
+                    var elevatedCount = targets.Count(t => t.RequiresElevation);
+                    var proceedNonAdmin = MessageBox.Show(
+                        $"{elevatedCount} of {targets.Count} item(s) require administrator rights, " +
+                        "but elevation was declined or unavailable.\n\n" +
+                        "Continue cleaning only the items that do NOT need admin?",
+                        "Elevation unavailable", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (proceedNonAdmin != MessageBoxResult.Yes)
+                    {
+                        StatusText = "Cleanup cancelled — administrator rights were declined";
+                        return;
+                    }
+
+                    targets = [.. targets.Where(t => !t.RequiresElevation)];
+                }
+            }
+
             var progress = new Progress<CleanupProgress>(p =>
                 StatusText = $"{p.Status}: {p.CurrentItem} ({p.Current}/{p.Total})");
 
@@ -295,6 +342,28 @@ public sealed partial class ResidualScanViewModel : ObservableObject
         < 1073741824 => $"{bytes / 1048576.0:F1} MB",
         _ => $"{bytes / 1073741824.0:F2} GB"
     };
+
+    /// <summary>
+    /// Quote-aware extraction of the executable from an UninstallString.
+    /// Quoted form wins outright; otherwise everything up to ".exe" (the same
+    /// heuristic Windows itself uses) so paths with spaces stay intact.
+    /// </summary>
+    private static string ExtractExecutablePath(string uninstallString)
+    {
+        var s = uninstallString.Trim();
+        if (s.StartsWith('"'))
+        {
+            var end = s.IndexOf('"', 1);
+            return end > 1 ? s[1..end] : s.Trim('"');
+        }
+
+        var exeIdx = s.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+        if (exeIdx >= 0)
+            return s[..(exeIdx + 4)];
+
+        var spaceIdx = s.IndexOf(' ');
+        return spaceIdx > 0 ? s[..spaceIdx] : s;
+    }
 }
 
 /// <summary>Selection-aware wrapper around the immutable LeftoverCandidate for list UI.</summary>
