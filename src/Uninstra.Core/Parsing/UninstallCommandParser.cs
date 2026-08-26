@@ -46,23 +46,29 @@ public static class UninstallCommandParser
         }
 
         // Unquoted executable — find the path by testing progressively longer prefixes
-        // because the path might contain spaces
+        // because the path might contain spaces. Accept anything that exists OR carries
+        // an executable extension: broken entries whose uninstaller no longer exists
+        // must still parse as a full path ("C:\Program Files\...\uninst.exe"), not as
+        // a "C:\Program" fragment (which once misflagged live apps as leftovers).
         var parts = trimmed.Split(' ');
         for (int i = 1; i <= parts.Length; i++)
         {
             var candidate = string.Join(' ', parts[..i]);
-            if (File.Exists(candidate) || candidate.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            if (File.Exists(candidate) || HasExecutableExtension(candidate))
             {
                 var args = i < parts.Length ? string.Join(' ', parts[i..]) : "";
                 return ValidateAndReturn(candidate, args, command);
             }
         }
 
-        // Fallback: first token is exe, rest is args
-        var firstSpace = trimmed.IndexOf(' ');
-        if (firstSpace > 0)
+        // Fallback: no token boundary matched (path likely contains spaces and the
+        // file does not exist). Treat everything up to the LAST space as the exe —
+        // uninstall strings put arguments after the executable, so a trailing
+        // fragment like "/S /x" must never bleed into the path.
+        var lastSpace = trimmed.LastIndexOf(' ');
+        if (lastSpace > 0)
         {
-            return ValidateAndReturn(trimmed[..firstSpace], trimmed[(firstSpace + 1)..], command);
+            return ValidateAndReturn(trimmed[..lastSpace], trimmed[(lastSpace + 1)..], command);
         }
 
         return ValidateAndReturn(trimmed, "", command);
@@ -121,6 +127,15 @@ public static class UninstallCommandParser
         }
         var space = trimmed.IndexOf(' ');
         return space >= 0 ? trimmed[(space + 1)..].TrimStart() : "";
+    }
+
+    private static bool HasExecutableExtension(string candidate)
+    {
+        // Executable extensions Windows CreateProcess honors (PATHEXT + .msi/.scr).
+        // Registry uninstall strings legitimately use .exe, .com, .bat, .cmd,
+        // .msi and even .scr as the launched binary.
+        ReadOnlySpan<char> ext = Path.GetExtension(candidate);
+        return ext is ".exe" or ".com" or ".bat" or ".cmd" or ".msi" or ".scr";
     }
 
     private static string ResolveSystemExe(string name)

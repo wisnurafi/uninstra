@@ -46,7 +46,12 @@ public sealed class JsonSettingsService : ISettingsService
         try
         {
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            File.WriteAllText(_settingsPath, json);
+
+            // Atomic write: a crash mid-write must never corrupt settings.json
+            // (a truncated file would silently load as defaults afterwards).
+            var tmpPath = _settingsPath + ".tmp";
+            File.WriteAllText(tmpPath, json);
+            File.Move(tmpPath, _settingsPath, overwrite: true);
         }
         catch (Exception ex)
         {

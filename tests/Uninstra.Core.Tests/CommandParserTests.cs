@@ -68,4 +68,39 @@ public class CommandParserTests
         var result = UninstallCommandParser.Parse("\"C:\\Broken\\path");
         result.IsValid.Should().BeFalse();
     }
+
+    [Fact]
+    public void Parse_UnquotedMissingFile_SpacedPath_ParsesFullPath()
+    {
+        // Broken entry: uninstaller file no longer exists, path contains spaces.
+        // Must resolve the FULL path, not a "C:\Program" fragment.
+        var result = UninstallCommandParser.Parse(
+            @"C:\Program Files\Vendor\App\uninstall.exe /S");
+        result.IsValid.Should().BeTrue();
+        result.ExecutablePath.Should().Be(@"C:\Program Files\Vendor\App\uninstall.exe");
+        result.Arguments.Should().Be("/S");
+    }
+
+    [Fact]
+    public void Parse_BatchUninstaller_MissingFile_StillParses()
+    {
+        var result = UninstallCommandParser.Parse(
+            @"C:\Program Files\My App\unins000.bat /quiet");
+        result.IsValid.Should().BeTrue();
+        result.ExecutablePath.Should().Be(@"C:\Program Files\My App\unins000.bat");
+        result.Arguments.Should().Be("/quiet");
+    }
+
+    [Fact]
+    public void Parse_NoExecutableExtension_FallbackUsesLastSpaceBoundary()
+    {
+        // Extension-less command line: last-space split keeps the whole path
+        // intact and pushes only the trailing argument into Arguments.
+        // (Multi-argument extension-less lines are inherently ambiguous; the
+        // parser deliberately favors keeping the path whole over fragmenting it.)
+        var result = UninstallCommandParser.Parse(
+            @"C:\Program Files\Weird App\uninstaller /S");
+        result.ExecutablePath.Should().Be(@"C:\Program Files\Weird App\uninstaller");
+        result.Arguments.Should().Be("/S");
+    }
 }
